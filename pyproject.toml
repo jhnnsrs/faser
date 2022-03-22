@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "faser"
+version = "0.1.0"
+description = ""
+authors = ["jhnnsrs <jhnnsrs@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+pyimagej = "^1.0.2"
+scipy = "^1.8.0"
+tifffile = "^2022.2.9"
+numba = "^0.55.1"
+tqdm = "^4.63.0"
+MicroscPSF-Py = "^0.2"
+napari = {extras = ["pyqt5"], version = "^0.4.14"}
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
