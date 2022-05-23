@@ -4,7 +4,7 @@ import zarr as zr
 import numpy as np
 
 
-def save(generator, config, path, **kwargs):
+def save(generator, config, path, as_zarr=False, **kwargs):
     """Save a generator to a zarr file.
 
     Parameters
@@ -19,22 +19,24 @@ def save(generator, config, path, **kwargs):
     """
 
     data = generator(config).generate()
-    if True:
+
+    if as_zarr:
         with open(path, "wb") as f:
             np.save(f, data)
-        return
+        return path
 
-    store = zr.DirectoryStore(path, compression=None)
+    else:
+        store = zr.DirectoryStore(path, compression=None)
 
-    return (
-        xr.DataArray(
-            data,
-            dims=list("xyz"),
-            attrs={"config": config.json(), "generator": generator.__name__},
+        return (
+            xr.DataArray(
+                data,
+                dims=list("xyz"),
+                attrs={"config": config.json(), "generator": generator.__name__},
+            )
+            .to_dataset(name="data")
+            .to_zarr(store, mode="w", compute=True)
         )
-        .to_dataset(name="data")
-        .to_zarr(store, mode="w", compute=True)
-    )
 
 
 def load(path):

@@ -1,12 +1,13 @@
 #%%
+import matplotlib
+import matplotlib.pyplot as plt
+import napari
+import numpy as np
+
 from faser.generators.base import Aberration, PSFGeneratorConfig
+from faser.generators.scalar.gibson_lanny import GibsonLannyPSFGenerator
 from faser.generators.scalar.phasenet import PhaseNetPSFGenerator
 from faser.generators.vectorial.stephane import StephanePSFGenerator
-from faser.generators.scalar.gibson_lanny import GibsonLannyPSFGenerator
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib
-import napari
 from faser.retrievers.gs import ger_sax
 
 config = PSFGeneratorConfig(Nx=33, Ny=33, Nz=33, aberration=Aberration(a7=0.5))
