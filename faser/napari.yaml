@@ -1,0 +1,5 @@
+name: faser
+contributions:
+  widgets:
+    - command: faser.napari.gui.generate_psf
+      display_name: Wizard

@@ -1,13 +1,8 @@
-#%%
 from magicgui import magicgui
 from faser.generators.base import Aberration, PSFConfig, Mode, Polarization
 from faser.generators.vectorial.stephane import StephanePSFGenerator
 import numpy as np
 import napari
-
-from magicgui.widgets import LineEdit, SpinBox, Container, create_widget
-
-config = PSFConfig(Nx=32, Ny=32, Nz=32, Ntheta=50, Nphi=20)
 
 
 viewer = napari.Viewer()
@@ -84,7 +79,3 @@ def generate_psf(
 
     psf = StephanePSFGenerator(config).generate()
     return viewer.add_image(psf, name=f"PSF {config.aberration} ")
-
-
-viewer.window.add_dock_widget(generate_psf, area="right", name="PSF Generator")
-napari.run()

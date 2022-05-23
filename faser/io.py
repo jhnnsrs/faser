@@ -1,6 +1,4 @@
 import json
-import xarray as xr
-import zarr as zr
 import numpy as np
 
 
@@ -26,6 +24,9 @@ def save(generator, config, path, as_zarr=False, **kwargs):
         return path
 
     else:
+        import xarray as xr
+        import zarr as zr
+
         store = zr.DirectoryStore(path, compression=None)
 
         return (
@@ -39,10 +40,15 @@ def save(generator, config, path, as_zarr=False, **kwargs):
         )
 
 
-def load(path):
-    if True:
+def load(
+    path,
+    as_zarr=False,
+):
+    if not as_zarr:
         with open(path, "rb") as f:
             data = np.load(f)
         return data
+
+    import xarray as xr
 
     return xr.open_zarr(path)["data"]
