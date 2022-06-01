@@ -1,8 +1,9 @@
 import json
+from typing import Callable
 import numpy as np
 
 
-def save(generator, config, path, as_zarr=False, **kwargs):
+def save(generator: Callable, config, path, as_zarr=False, **kwargs):
     """Save a generator to a zarr file.
 
     Parameters

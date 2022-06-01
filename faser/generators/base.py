@@ -1,4 +1,6 @@
 from enum import Enum
+from typing import Callable
+import numpy as np
 from pydantic import BaseModel, validator, root_validator, validate_model
 
 
@@ -36,12 +38,6 @@ class AberrationFloat(float):
     def validate(cls, v):
         if not isinstance(v, float):
             raise TypeError("Float required")
-
-        if v < 0:
-            raise ValueError("Must be positive")
-
-        if v > 1:
-            raise ValueError("Must be less than 1")
         # you could also return a string here which would mean model.post_code
         # would be a string, pydantic won't care but you could end up with some
         # confusion since the value's type won't match the type annotation
@@ -134,6 +130,16 @@ class PSFConfig(BaseModel):
     Ntheta = 40
     Nphi = 40
 
+    # Noise Parameters
+
+    gaussian_beam_noise = 0.0
+    detector_gaussian_noise = 0.0
+
+    add_detector_poisson_noise = False  # standard deviation of the noise
+
+    # Normalization
+    rescale = True  # rescale the PSF to have a maximum of 1
+
     @root_validator
     def validate_numerical_aperature(cls, values):
         numerical_aperature = values["numerical_aperature"]
@@ -147,9 +153,4 @@ class PSFConfig(BaseModel):
         return values
 
 
-class PSFGenerator:
-    def __init__(self, config: PSFConfig) -> None:
-        self.config = config
-
-    def generate(self):
-        raise NotImplementedError()
+PSFGenerator = Callable[[PSFConfig], np.ndarray]

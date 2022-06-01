@@ -1,5 +1,4 @@
-import contextlib
-from faser.napari.gui import generate_psf
+from faser.napari.gui import generate_psf_gui
 
 import napari
 import numpy as np
@@ -8,7 +7,7 @@ import argparse
 
 def main(**kwargs):
     viewer = napari.Viewer()
-    viewer.window.add_dock_widget(generate_psf, area="right", name="Faser")
+    viewer.window.add_dock_widget(generate_psf_gui, area="right", name="Faser")
     napari.run()
 
 

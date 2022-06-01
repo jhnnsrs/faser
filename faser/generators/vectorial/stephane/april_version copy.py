@@ -32,36 +32,6 @@ def zernike(rho, theta, a: Aberration):
     return zer
 
 
-def poisson_noise(image, seed=None):
-    """
-    Add Poisson noise to an image.
-    """
-
-    if image.min() < 0:
-        low_clip = -1.0
-    else:
-        low_clip = 0.0
-
-    rng = np.random.default_rng(seed)
-    # Determine unique values in image & calculate the next power of two
-    vals = len(np.unique(image))
-    vals = 2 ** np.ceil(np.log2(vals))
-
-    # Ensure image is exclusively positive
-    if low_clip == -1.0:
-        old_max = image.max()
-        image = (image + 1.0) / (old_max + 1.0)
-
-    # Generating noise for each unique value in image.
-    out = rng.poisson(image * vals) / float(vals)
-
-    # Return image to original range if input was signed
-    if low_clip == -1.0:
-        out = out * (old_max + 1.0) - 1.0
-
-    return out
-
-
 # phase mask function
 def phase_mask(
     rho: np.ndarray,
@@ -91,12 +61,6 @@ def cart_to_polar(x, y) -> Tuple[np.ndarray, np.ndarray]:
     return rho, theta
 
 
-def pol_to_cart(rho, phi):
-    x = rho * np.cos(phi)
-    y = rho * np.sin(phi)
-    return (x, y)
-
-
 def generate_psf(s: PSFConfig) -> np.ndarray:
 
     # Calulcated Parameters
@@ -118,6 +82,55 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     z2 = np.linspace(-s.LfocalZ, s.LfocalZ, s.Nz)
     [X2, Y2, Z2] = np.meshgrid(x2, y2, z2)  # TODO: Needs to be propüerly constructed
 
+    rho_pupil, theta_pupil = cart_to_polar(X1, Y1)
+
+    rho_pupil_mask, theta_pupil_mask = cart_to_polar(
+        X1 - pupil_radius / s.Nx * s.mask_offsetX,
+        Y1 - pupil_radius / s.Ny * s.mask_offsetY,
+    )  # TODO: Ask if it is effective pupil radius?
+
+    rho_pupil_W_offset, theta_pupil_W_offset = cart_to_polar(
+        X1 - pupil_radius / s.Nx * s.ampl_offsetX,
+        Y1 - pupil_radius / s.Ny * s.ampl_offsetY,
+    )
+
+    A_pupil = np.empty(rho_pupil.shape)  # beam amplitude
+    mask_pupil = np.empty(rho_pupil.shape)  # beam phase mask
+    W_pupil = np.empty(rho_pupil.shape)  # beam wavefron
+
+    pupil_accessor = np.sqrt(np.square(X1) + np.square(Y1)) <= pupil_radius
+
+    A_pupil[pupil_accessor] = np.exp(
+        -(
+            (
+                np.square(X1[pupil_accessor] - s.ampl_offsetX * pupil_radius / s.Nx)
+                + np.square(Y1[pupil_accessor] - s.ampl_offsetY * pupil_radius / s.Ny)
+            )
+            / s.beam_waist**2
+        )
+    )  # Amplitude profile
+    mask_pupil[pupil_accessor] = np.angle(
+        phase_mask(
+            rho_pupil_mask[pupil_accessor],
+            theta_pupil_mask[pupil_accessor],
+            s.unit_phase_radius * pupil_radius,
+            s.vortex_charge,
+            s.ring_charge,
+            s.mode,
+        )
+    )  # phase mask
+
+    W_pupil[pupil_accessor] = np.angle(
+        np.exp(
+            1j
+            * zernike(
+                rho_pupil_W_offset[pupil_accessor] / pupil_radius,
+                theta_pupil_W_offset[pupil_accessor],
+                s.aberration,
+            )
+        )
+    )  # Wavefront
+
     ## incident beam polarization cases
     p0x = [1, 0, 1 / np.sqrt(2), 1j / np.sqrt(2)]
     p0y = [0, 1, 1j / np.sqrt(2), 1 / np.sqrt(2)]
@@ -136,7 +149,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     # TODO: Bring to loop to allow other polaraization
 
     # Step of integral
-    deltatheta = focusing_angle / (s.Ntheta - 1)
+    deltatheta = focusing_angle / s.Ntheta
     deltaphi = 2 * np.pi / s.Nphi
 
     # Initialization
@@ -144,11 +157,9 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     Ey2 = 0  # Ey?component in focal
     Ez2 = 0
 
-    Noise = np.random.normal(0, s.gaussian_beam_noise, (s.Ntheta, s.Nphi))
-
     theta = 0
     phi = 0
-    for slice in range(0, s.Ntheta):
+    for slice in range(0, s.Ntheta + 1):
         theta = slice * deltatheta
         for q in range(0, s.Nphi):
             phi = q * deltaphi
@@ -178,6 +189,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
 
             # polarization in focal region
             P = np.matmul(T, P0)
+            print(P)
             # Cylindrical coordinates on pupil
 
             x_pup = s.working_distance * sa * ci
@@ -201,7 +213,6 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
             a = np.sqrt(ca)
             # Incident intensity profile
             Bi = np.exp(-np.square(rho_amp_polar) / np.square(s.beam_waist))
-            Bi = Bi + Noise[slice][q]
             # Phase mask
             PM = phase_mask(
                 rho_mask_polar,
@@ -241,16 +252,8 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     Iy2 = np.multiply(np.conjugate(Ey2), Ey2)
     Iz2 = np.multiply(np.conjugate(Ez2), Ez2)
     I1 = Ix2 + Iy2 + Iz2
-    I1 = np.real(I1)
 
     # Add Poisson noise to I1
-    if s.add_detector_poisson_noise:
-        I1 = poisson_noise(I1)
+    I1 = I1 + np.random.poisson(lam=s.lam_possion_detector_noise, size=I1.shape)
 
-    I1 = I1 + np.random.normal(0, s.detector_gaussian_noise, I1.shape)
-
-    if s.rescale:
-        # We are only rescaling to the max, not the min
-        I1 = I1 / np.max(I1)
-
-    return np.moveaxis(I1, 2, 0)
+    return np.moveaxis(I1, 2, 0).astype(np.float64)

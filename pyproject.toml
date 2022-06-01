@@ -1,15 +1,19 @@
 [tool.poetry]
 name = "faser"
-version = "0.1.0"
+version = "0.2.8"
 description = ""
 authors = ["jhnnsrs <jhnnsrs@gmail.com>"]
+classifiers = [
+    "Framework :: napari",
+]
+include = ["faser", "faser/napari.yaml"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
-napari = {extras = ["pyqt5"], version = "^0.4.14"}
 magicgui = "^0.4.0"
 napari-plugin_engine = "^0.1.4"
 numpy = "^1.22.4"
+pydantic = "^1.9.1"
 
 
 [tool.poetry.scripts]
@@ -17,7 +21,7 @@ faser= "faser.napari.main:main"
 
 
 [tool.poetry.plugins."napari.plugin"]
-faser = "faser.napari.plug in"
+faser = "faser.napari.plugin"
 
 [tool.poetry.plugins."napari.manifest"]
 faser = "faser:napari.yaml"
@@ -26,6 +30,8 @@ faser = "faser:napari.yaml"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
+pydoc-markdown = "^4.6.3"
+black = "^22.3.0"
 
 [tool.pytest.ini_options]
 qt_api="pyqt5"

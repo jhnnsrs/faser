@@ -1,15 +1,15 @@
-from magicgui import magicgui
+from magicgui import magic_factory, magicgui
 from faser.generators.base import Aberration, PSFConfig, Mode, Polarization
-from faser.generators.vectorial.stephane import StephanePSFGenerator
+from faser.generators.vectorial.stephane import generate_psf
 import numpy as np
 import napari
-
-
-viewer = napari.Viewer()
-
+from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
+detector_slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
+
+viewer = None
 
 
 @magicgui(
@@ -27,8 +27,11 @@ focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
     trefoil_v=slider,
     trefoil_h=slider,
     spherical=slider,
+    gaussian_beam_noise=detector_slider,
+    detector_gaussian_noise=detector_slider,
 )
-def generate_psf(
+def generate_psf_gui(
+    viewer: napari.Viewer,
     Nx=32,
     Ny=32,
     Nz=32,
@@ -47,6 +50,10 @@ def generate_psf(
     trefoil_v=0.0,
     trefoil_h=0.0,
     spherical=0.0,
+    gaussian_beam_noise=0.0,
+    detector_gaussian_noise=0.0,
+    add_detector_poisson_noise=False,
+    rescale=True,
     mode: Mode = Mode.GAUSSIAN,
     polarization: Polarization = Polarization.LEFT_CIRCULAR,
 ):
@@ -72,10 +79,15 @@ def generate_psf(
         aberration=aberration,
         mode=mode,
         polarization=polarization,
+        gaussian_beam_noise=gaussian_beam_noise,
+        detector_gaussian_noise=detector_gaussian_noise,
+        add_detector_poisson_noise=add_detector_poisson_noise,
         LfocalX=LfocalXY * 1e-6,
         LfocalY=LfocalXY * 1e-6,  # observation scale Y
         LfocalZ=LfocalZ * 1e-6,
+        rescale=rescale,
     )
 
-    psf = StephanePSFGenerator(config).generate()
+    psf = generate_psf(config)
+    print(psf.max())
     return viewer.add_image(psf, name=f"PSF {config.aberration} ")
