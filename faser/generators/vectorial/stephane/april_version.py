@@ -144,7 +144,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     Ey2 = 0  # Ey?component in focal
     Ez2 = 0
 
-    Noise = np.random.normal(0, s.gaussian_beam_noise, (s.Ntheta, s.Nphi))
+    Noise = np.abs(np.random.normal(0, s.gaussian_beam_noise, (s.Ntheta, s.Nphi)))
 
     theta = 0
     phi = 0
@@ -247,7 +247,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     if s.add_detector_poisson_noise:
         I1 = poisson_noise(I1)
 
-    I1 = I1 + np.random.normal(0, s.detector_gaussian_noise, I1.shape)
+    I1 = I1 + np.abs(np.random.normal(0, s.detector_gaussian_noise, I1.shape))
 
     if s.rescale:
         # We are only rescaling to the max, not the min
