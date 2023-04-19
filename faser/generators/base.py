@@ -8,6 +8,7 @@ class Mode(int, Enum):
     GAUSSIAN = 1
     DONUT = 2
     BOTTLE = 3
+    DONUT_BOTTLE = 4
 
 
 class WindowType(str, Enum):
@@ -17,13 +18,9 @@ class WindowType(str, Enum):
 
 
 class Polarization(int, Enum):
-    X_LINEAR = 1
-    Y_LINEAR = 2
-    LEFT_CIRCULAR = 3
-    RIGHT_CIRCULAR = 4
-    ELLIPTICAL = 5
-    RADIAL = 6
-    AZIMUTHAL = 7
+    ELLIPTICAL = 1
+    RADIAL = 2
+    AZIMUTHAL = 3
 
 
 class AberrationFloat(float):
@@ -64,74 +61,124 @@ class Aberration(BaseModel):
         )
 
 
-class EffectivePSFGeneratorConfig(BaseModel):
-    Isat: float = 0.15  # Saturation factor of depletion
+#class EffectivePSFGeneratorConfig(BaseModel):
+#    I_sat: float = 0.1  # Saturation factor of depletion
 
 
-class WindowConfig(BaseModel):
-    wind: WindowType = WindowType.NEW
-    radius_window = 2.3e-3  # radius of the cranial window (in m)
-    thicknes_window = 2.23e-3  # thickness of the cranial window (in m)
+#class WindowConfig(BaseModel):
+#    wind: WindowType = WindowType.NEW
+#    r_window = 2.3e-3  # radius of the cranial window (in m)
+#    t_window = 2.23e-3  # thickness of the cranial window (in m)
 
 
-class CoverslipConfig(BaseModel):
+#class CoverslipConfig(BaseModel):
     # Coverslip Parameters
-    refractive_index_coverslip = 1.5  # refractive index of immersion medium
-    refractive_index_sample = 1.38  # refractive index of immersion medium (BRIAN)
+ #   refractive_index_immersion = 1.33 # refractive index of the immersion medium
+ #   refractive_index_coverslip = 1.52  # refractive index of the coverslip
+ #   refractive_index_sample = 1.38  # refractive index of immersion medium (BRIAN)
 
-    imaging_depth = 10e-6  # from coverslip down
-    thickness_coverslip = 100e-6  # thickness of coverslip in meter
+#    imaging_depth = 10e-6  # from coverslip down
+#    thickness_coverslip = 100e-6  # thickness of coverslip in meter
 
 
 class PSFConfig(BaseModel):
     mode: Mode = Mode.GAUSSIAN
-    polarization: Polarization = Polarization.LEFT_CIRCULAR
+    polarization: Polarization = Polarization.ELLIPTICAL
 
     # Window Type?
     wind: WindowType = WindowType.NEW
-
+  
     # Geometry parameters
-    numerical_aperature: float = 1.0  # numerical aperture of objective lens
-    working_distance = 2.8e-3  # working distance of the objective in meter
-    refractive_index_immersion = 1.33  # refractive index of immersion medium
+    NA: float = 1.0  # numerical aperture of objective lens
+    WD = 2.8e-3  # working distance of the objective in meter
+    n1 = 1.33  # refractive index of immersion medium
+    n2=1.52 # refractive index of the glass coverslip
+    n3=1.38 # refractive index of the Sample
+    collar = 170e-6  # thickness of the coverslip corrected by the collar
+    thick=170e-6    # Thickness of the coverslip
+    depth=10e-6     # Depth in the sample
+    gamma=1 # Tilt angle (in °)
 
     # Beam parameters
     wavelength = 592e-9  # wavelength of light in meter
-    beam_waist = 8e-3
+    waist = 8e-3
+    ampl_offset_x: float = 0  # offset of the amplitude profile in regard to pupil center
+    ampl_offset_y: float = 0
 
-    ampl_offsetX = (
-        0.0  # offset of the amplitude profile in regard to pupil center in x direction
-    )
-
-    ampl_offsetY = 0.0  # offset of the amplitude profile in regard to pupil center i in y direction
+    # Polarization parameters
+    psi=0   # Direction of elliptical polar (0: horizontal, 90 vertical)
+    eps=45  # Ellipticity (-45: right-handed circular polar, 0: linear, 45: left-handed circular)
 
     # STED parameters
-    saturation_factor = 0.1  # Saturation factor of depletion
-
-    # Phase Pattern
-    unit_phase_radius = 0.46  # radius of the ring phase mask (on unit pupil)
-    vortex_charge: float = 1.0  # vortex charge (should be integer to produce donut) # TODO: topological charge
-    ring_charge: float = 1  # ring charge (should be integer to produce donut)
-    mask_offsetX: float = 0.0  # offset of the phase mask in x direction
-    mask_offsetY: float = 0.0  # offset of the phase mask in y direction
+    I_sat = 0.1  # Saturation factor of depletion
+    ring_radius = 0.46  # radius of the ring phase mask (on unit pupil)
+    vc: float = 1.0  # vortex charge (should be integer to produce donut) # TODO: topological charge
+    rc: float = 1  # ring charge (should be integer to produce donut)
+    mask_offset_x = 0  # offset of the phase mask in regard of the pupil center
+    mask_offset_y = 0
+    p=0.5   # intensity repartition in donut and bottle beam (p donut, (1-p) bottle)
 
     # Aberration
     aberration: Aberration = Aberration()
-    aberration_offsetX: float = 0.0  # offset of the aberration in x direction
-    aberration_offsetY: float = 0.0  # offset of the aberration in y direction
+    aberration_offset_x = 0  # offset of the aberration in regard of the pupil center
+    aberration_offset_y= 0
 
     # sampling parameters
-    LfocalX = 1e-6  # observation scale X
-    LfocalY = 1e-6  # observation scale Y
-    LfocalZ = 1e-6  # observation scale Z
-    Nx = 32  # discretization of image plane
-    Ny = 32
-    Nz = 32
-    Ntheta = 40
-    Nphi = 40
+    LfocalX = 1.5e-6  # observation scale X (in m)
+    LfocalY = 1.5e-6  # observation scale Y (in m)
+    LfocalZ = 2e-6  # observation scale Z (in m)
+    Nx = 31  # discretization of image plane - better be odd number
+    Ny = 31
+    Nz = 31
+    Ntheta = 31 # integration step
+    Nphi = 31
+    threshold=0.001
+    it=1
+
+    # Calculated Parameters
+    k0 = 2 * np.pi / wavelength  # wavenumber (m^-1)
+    alpha = np.arcsin(NA / n1)  # maximum focusing angle of the objective (in rad)
+    r0 = WD * np.sin(alpha)  # radius of the pupil (in m)
+
+    # convert angle in red
+    gamma=gamma*np.pi/180 # tilt angle (in rad)
+    psi=psi*np.pi/180 # polar direction
+    eps=eps*np.pi/180 # ellipticity
+
+    sg=np.sin(gamma)
+    cg=np.cos(gamma)
+
+    alpha_int=alpha+abs(gamma) # Integration range (in rad)
+    r0_int=WD*np.sin(alpha_int)  # integration radius on pupil (in m)
+    #waist=waist*r0
+
+    #e_wind = 2.23e-3    # thichkness of the window (in m)
+    #if wind == 1
+    #   r_wind=1.5e-3 # radius of the old cranial window (in m)
+    #elseif wind==2
+    #    r_wind=2.3e-3   # radius of the new cranial window (in m)
+    #elseif wind==3
+    #    r_wind=1000*e_wind
+    #else
+    #    disp('unknown request');
+    
+    # Impact of the cranial window
+    #alpha_eff=min(np.atan(r_wind/e_wind),alpha)  # effective focalization angle in presence of the cranial window
+    #NA_eff=min(n1*sin(alpha_eff),NA)    # Effective NA in presence of the cranial window
+    #r0_eff=WD*sin(alpha_eff)    # Effective pupil radius 'in m)
+    
+    # Corrected focus position
+    alpha2=np.arcsin((n1/n2)*np.sin(alpha))
+    alpha3=np.arcsin((n2/n3)*np.sin(alpha2))
+    # Cp.Dfoc=Sp.depth*(tan(Cp.alpha_eff)/tan(Cp.alpha3_eff)-1)+Sp.thick*(tan(Cp.alpha_eff)-tan(Cp.alpha2_eff))/tan(Cp.alpha3_eff);
+    Dfoc=0.053*depth+0.173*(thick-collar) # No aberration correction
+    # Cp.Dfoc=0.053*Sp.depth+0.4*(Sp.thick); % No aberration correction
+
+    # Step and range of integral
+    deltatheta=alpha_int/Ntheta
+    deltaphi=2*np.pi/Nphi
 
     # Noise Parameters
-
     gaussian_beam_noise = 0.0
     detector_gaussian_noise = 0.0
 
@@ -141,16 +188,16 @@ class PSFConfig(BaseModel):
     rescale = True  # rescale the PSF to have a maximum of 1
 
     @root_validator
-    def validate_numerical_aperature(cls, values):
-        numerical_aperature = values["numerical_aperature"]
-        if numerical_aperature <= 0:
+    def validate_NA(cls, values):
+        NA = values["NA"]
+        if NA <= 0:
             raise ValueError("numerical_aperature must be positive")
-        if values["refractive_index_immersion"] < values["numerical_aperature"]:
+        if values["n1"] < NA:
             raise ValueError(
                 "numerical_aperature must be smaller than the refractive index"
             )
 
         return values
-
+    
 
 PSFGenerator = Callable[[PSFConfig], np.ndarray]

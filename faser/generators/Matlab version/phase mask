@@ -1,0 +1,5 @@
+     R=Sp.ring_radius*Cp.r0;
+        
+        elseif mode == 4 % Donut + Bottle
+        disp('No display of Donut+Bottle phase mask');
+        mask=nan;

@@ -1,0 +1,5 @@
+function [Itot]=Intensity_computation(Ex,Ey,Ez)    
+Ix=conj(Ex).*(Ex);
+Iy=conj(Ey).*(Ey);
+Iz=conj(Ez).*(Ez);
+Itot=Ix+Iy+Iz;

@@ -1,0 +1,11 @@
+function [Im,Ivol,w]=Quantif_psf(Itot,Foc,Sp)
+    Im=max(Itot,[],'all');
+%     Imean=mean(Itot,[],'all')/(size(Itot,1)*size(Itot,2)*size(Itot,3));
+    
+    Ivol=sum(Itot/Im>Sp.threshold,'all')/(size(Itot,1)*size(Itot,2)*size(Itot,3));
+    
+    Imax.x=max(Itot,[],[2,3]);
+    Imax.y=max(Itot,[],[1,3]);
+    Imax.z=max(Itot,[],[1,2]);
+    
+    w=[FWHM(Foc.x2,Imax.x),FWHM(Foc.y2,Imax.y),FWHM(Foc.z2,Imax.z)];

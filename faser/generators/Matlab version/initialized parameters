@@ -1,0 +1,35 @@
+function [Pup,Foc]=Initialize_parameters(Sp,Cp)
+
+% Creation of the grids for calculation
+Pup.x1=linspace(-Cp.r0_int,Cp.r0_int,Sp.Nx);
+Pup.y1=linspace(-Cp.r0_int,Cp.r0_int,Sp.Ny);
+[Pup.X1,Pup.Y1]=meshgrid(Pup.x1,Pup.y1); % grid on the pupil plane
+Foc.x2=linspace(-Sp.Lfocxy,Sp.Lfocxy,Sp.Nx);
+Foc.y2=linspace(-Sp.Lfocxy,Sp.Lfocxy,Sp.Ny);
+Foc.z2=linspace(-Sp.Lfocz,Sp.Lfocz,Sp.Nz);
+[Foc.X2,Foc.Y2,Foc.Z2]=meshgrid(Foc.x2,Foc.y2,Foc.z2+Cp.Dfoc); % grid on the focal volume
+
+%Tilted coordinate in focal volume
+Foc.X2t=Cp.cg*Foc.X2+Cp.sg*Foc.Z2;
+Foc.Y2t=Foc.Y2;
+Foc.Z2t=-Cp.sg*Foc.X2+Cp.cg*Foc.Z2;
+
+% pupil functions
+Pup.sted.Amp=nan(Sp.Nx,Sp.Ny);  % Incident STED beam amplitude (NA outside the integration range)
+Pup.exc.Amp=nan(Sp.Nx,Sp.Ny); % Incident excitation beam amplitude (NA outside the integration range)
+Pup.sted.M=nan(Sp.Nx,Sp.Ny); % Incident STED phase mask (NA outside the integration range)
+Pup.sted.M_eff=nan(Sp.Nx,Sp.Ny); % effective STED phase mask (NA outside the integration range) 
+Pup.sted.W=nan(Sp.Nx,Sp.Ny); % Incident STED wavefront (NA outside the integration range) 
+Pup.exc.W=nan(Sp.Nx,Sp.Ny); % Incident exc wavefront (NA outside the integration range)
+
+% % Focal fields
+Foc.sted.Itot=nan(Sp.Nx,Sp.Ny,Sp.Nz);
+Foc.exc.Itot=nan(Sp.Nx,Sp.Ny,Sp.Nz);
+Foc.eff.Itot=nan(Sp.Nx,Sp.Ny,Sp.Nz);
+
+% Quantif and loop parameters
+% Foc.Imax_eff=nan(Sp.it,1);
+% Foc.Ivol_exc=nan(Sp.it,1);
+% Foc.Ivol_eff=nan(Sp.it,1);
+% Foc.FWHM_eff=nan(Sp.it,3);
+% Foc.FWHM_exc=nan(Sp.it,3);

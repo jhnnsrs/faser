@@ -1,23 +1,29 @@
-from magicgui import magic_factory, magicgui
-from faser.generators.base import Aberration, PSFConfig, Mode, Polarization
-from faser.generators.vectorial.stephane import generate_psf
-import numpy as np
 import napari
+import numpy as np
+from magicgui import magic_factory, magicgui
+from faser.generators.base import Aberration, PSFConfig, Mode, Polarization, WindowType
+from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+import numpy as np
+# import napari
 from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from scipy import ndimage
 from skimage.transform import resize
 
+# from faser.generators.base import Aberration, Mode, WindowType, Polarization, PSFConfig
+# from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+
 slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 detector_slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
+beam_slider = {"widget_type": "FloatSlider", "min": 0.5, "max": 50, "step":0.5}
 
 viewer = None
 
-
 @magicgui(
-    call_button="Generate",
+    call_button='Generate',
     LfocalXY=focal_slider,
     LfocalZ=focal_slider,
+    # waist=beam_slider,
     piston=slider,
     tip=slider,
     tilt=slider,
@@ -34,13 +40,14 @@ viewer = None
 )
 def generate_psf_gui(
     viewer: napari.Viewer,
-    Nx=32,
-    Ny=32,
-    Nz=32,
-    LfocalXY=1,  # observation scale X
-    LfocalZ=1,  # observation scale Z
-    Ntheta=50,
-    Nphi=20,
+    Nx=31, # discretization of image plane
+    Ny=31,
+    Nz=31,
+    LfocalXY=2,  # observation scale X and Y
+    LfocalZ=4,  # observation scale Z
+    Ntheta=31,  # Integration steps
+    Nphi=31,
+    # Optical aberrations
     piston=0.0,
     tip=0.0,
     tilt=0.0,
@@ -56,8 +63,33 @@ def generate_psf_gui(
     detector_gaussian_noise=0.0,
     add_detector_poisson_noise=False,
     rescale=True,
+    # Phase profile
     mode: Mode = Mode.GAUSSIAN,
-    polarization: Polarization = Polarization.LEFT_CIRCULAR,
+    # vc=1,
+    # rc=1,
+    # ring_radius=0.46,
+    # mask_offset=[0.0,0.0],
+    # p=0.5,
+    # Polarization
+    polarization: Polarization = Polarization.ELLIPTICAL,
+    psi=0,
+    eps=45,
+
+    # aberration_offset=[0.0,0.0],
+    # NA=1.0,
+    # WD=2.8,
+    # n1=1.33,
+    # n2=1.52,
+    # n3=1.38,
+    # thick=170,
+    # depth=10,
+    # tilt_angle=1,
+    # wind: WindowType = WindowType.NO,
+    # t_wind=2.23,
+    # r_wind=1.5,
+    # wavelength=592,
+    # waist=50.0,
+    # ampl_offset= [0,0],
 ):
     aberration = Aberration(
         a1=piston,
@@ -88,6 +120,30 @@ def generate_psf_gui(
         LfocalY=LfocalXY * 1e-6,  # observation scale Y
         LfocalZ=LfocalZ * 1e-6,
         rescale=rescale,
+        # wavelength=wavelength*1e-9,
+                # waist=waist*1e-3,
+        # ampl_offset=ampl_offset,
+                
+        # psi=psi,
+        # eps=eps,
+        
+        # aberration_offset=aberration_offset,
+        # vc=vc,
+        # rc=rc,
+        # ring_radius=ring_radius,
+        # mask_offset=mask_offset,
+        # p=p,
+        # NA=NA,
+        # WD=WD*1.e-3,
+        # n1=n1,
+        # n2=n2,
+        # n3=n3,
+        # thick=thick*1e-6,
+        # depth=depth*1e-6,
+        # tilt_angle=tilt_angle,
+        # wind=wind,
+        # t_wind=t_wind*1e-3,
+        # r_wind=r_wind*1e-3,
     )
 
     psf = generate_psf(config)
@@ -98,10 +154,44 @@ def generate_psf_gui(
         metadata={"is_psf": True, "config": config},
     )
 
+@magicgui(
+    call_button="Effective PSF",
+    I_sat=slider,
+)
+def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
+
+    gaussian_layers = (
+        layer
+        for layer in viewer.layers.selection
+        if layer.metadata.get("is_psf", False)
+        and layer.metadata.get("config", None)
+        and layer.metadata.get("config", None).mode == Mode.GAUSSIAN
+    )
+
+    non_gaussian_layers = (
+        layer
+        for layer in viewer.layers.selection
+        if layer.metadata.get("is_psf", False)
+        and layer.metadata.get("config", None)
+        and layer.metadata.get("config", None).mode != Mode.GAUSSIAN
+    )
+
+    psf_layer_one = next(gaussian_layers)
+    psf_layer_two = next(non_gaussian_layers)
+    new_psf = np.multiply(
+        psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat)
+    )
+
+    return viewer.add_image(
+        new_psf,
+        name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
+        metadata={"is_psf": True},
+    )
 
 @magicgui(
     call_button="Convolve Image",
 )
+
 def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 
     psf_layer = next(
@@ -133,39 +223,4 @@ def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
     return viewer.add_image(
         con.squeeze(),
         name=f"Convoled {image_layer.name} with {psf_layer.name}",
-    )
-
-
-@magicgui(
-    call_button="Combine PSFs",
-    saturation_factor=slider,
-)
-def make_effective_gui(viewer: napari.Viewer, saturation_factor=0.1):
-
-    gaussian_layers = (
-        layer
-        for layer in viewer.layers.selection
-        if layer.metadata.get("is_psf", False)
-        and layer.metadata.get("config", None)
-        and layer.metadata.get("config", None).mode == Mode.GAUSSIAN
-    )
-
-    non_gaussian_layers = (
-        layer
-        for layer in viewer.layers.selection
-        if layer.metadata.get("is_psf", False)
-        and layer.metadata.get("config", None)
-        and layer.metadata.get("config", None).mode != Mode.GAUSSIAN
-    )
-
-    psf_layer_one = next(gaussian_layers)
-    psf_layer_two = next(non_gaussian_layers)
-    new_psf = np.multiply(
-        psf_layer_one.data, np.exp(-psf_layer_two.data / saturation_factor)
-    )
-
-    return viewer.add_image(
-        new_psf,
-        name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
-        metadata={"is_psf": True},
     )

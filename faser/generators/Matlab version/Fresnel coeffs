@@ -1,0 +1,16 @@
+function[Tp,Ts] = Fresnel_coeff(Sp,Cp,ca,c2a,c3a,beam)
+
+t1p=2*Sp.n1*ca/(Sp.n2*ca+Sp.n1*c2a);
+t2p=2*Sp.n2*c2a/(Sp.n3*c2a+Sp.n2*c3a);
+r1p=(Sp.n2*ca-Sp.n1*c2a)/(Sp.n2*ca+Sp.n1*c2a);
+r2p=(Sp.n3*c2a-Sp.n2*c3a)/(Sp.n3*c2a+Sp.n2*c3a);
+
+t1s=2*Sp.n1*ca/(Sp.n1*ca+Sp.n2*c2a);
+t2s=2*Sp.n2*c2a/(Sp.n2*c2a+Sp.n3*c3a);
+r1s=(Sp.n1*ca-Sp.n2*c2a)/(Sp.n1*ca+Sp.n2*c2a);
+r2s=(Sp.n2*c2a-Sp.n3*c3a)/(Sp.n2*c2a+Sp.n3*c3a);
+
+beta=Cp.k0(beam)*Sp.n2*Sp.thick*c2a;
+
+Tp=t2p*t1p*exp(1i*beta)/(1+r1p*r2p*exp(2*1i*beta));
+Ts=t2s*t1s*exp(1i*beta)/(1+r1s*r2s*exp(2*1i*beta));

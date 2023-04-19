@@ -1,0 +1,19 @@
+clc
+# dir='D:\own cloud\Articles\Papier IINS\7- old new window + 3D-STED in vivo\Figures\';
+
+figure(7);
+name=[dir 'Donut_XY.tiff'];
+export_fig(name);
+
+figure(8);
+name=[dir 'Donut_XZ.tiff'];
+export_fig(name);
+
+figure(13);
+name=[dir 'Donut_eff_XY.tiff'];
+export_fig(name);
+
+figure(14);
+name=[dir 'Donut_eff_XZ.tiff'];
+export_fig(name);
+

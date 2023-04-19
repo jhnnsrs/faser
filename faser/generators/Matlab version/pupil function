@@ -1,0 +1,56 @@
+function [Pup]=Pupil_functions(Pup,C,Sp,Cp)
+
+% Coordinates on the integration region
+[Pup.phi_int,Pup.rho_int]=cart2pol(Pup.X1,Pup.Y1);
+Pup.int_area=Pup.rho_int<=Cp.r0_int; % mask of the integration area
+% theta_int=asin(int_area/WD);
+
+% set intensity to 0 inside the integration region
+Pup.sted.Amp(Pup.int_area)=0;
+Pup.exc.amp(Pup.int_area)=0;
+% set phase mask and aberration to unrealistic value inside the integration region 
+Pup.sted.M(Pup.int_area)=-1.03*pi; 
+Pup.sted.M_eff(Pup.int_area)=-1.03*pi;
+Pup.sted.W(Pup.int_area)=-1.03*pi;
+Pup.exc.W(Pup.int_area)=-1.03*pi;
+
+% Tilted spherical coordinates
+Pup.tilt.X1=Cp.cg*Pup.X1-Cp.sg*Sp.WD;
+Pup.tilt.Y1=Pup.Y1;
+[Pup.tilt.phi,Pup.tilt.rho]=cart2pol(Pup.tilt.X1,Pup.tilt.Y1);
+Pup.tilt.theta=asin(Pup.tilt.rho/Sp.WD);
+pupil(Pup.int_area)=sqrt(Pup.tilt.X1(Pup.int_area).^2+...
+    Pup.tilt.Y1(Pup.int_area).^2)<=Cp.r0 ; % mask of the pupil
+pupil_wind(Pup.int_area)=sqrt(Pup.tilt.X1(Pup.int_area).^2+...
+    Pup.tilt.Y1(Pup.int_area).^2)<=Cp.r0_eff ; % mask of the pupil
+
+[Pup.sted.tilt.Amp.phi,Pup.sted.tilt.Amp.rho]=...
+    cart2pol(Pup.tilt.X1-Cp.r0/Sp.Nx*Sp.Amp_offset(1,1),...
+    Pup.tilt.Y1-Cp.r0/Sp.Ny*Sp.Amp_offset(1,2)); % pupil plane with mask offset
+[Pup.sted.tilt.M.phi,Pup.sted.tilt.M.rho]=...
+    cart2pol(Pup.tilt.X1-Cp.r0/Sp.Nx*Sp.M_offset(1),...
+    Pup.tilt.Y1-Cp.r0/Sp.Ny*Sp.M_offset(2)); % pupil plane with mask offset
+[Pup.sted.tilt.W.phi,Pup.sted.tilt.W.rho]=...
+    cart2pol(Pup.tilt.X1-Cp.r0/Sp.Nx*Sp.Ab_offset(1,1),...
+    Pup.tilt.Y1-Cp.r0/Sp.Ny*Sp.Ab_offset(1,2)); % pupil plane with aberration sted offset
+[Pup.exc.tilt.Amp.phi,Pup.exc.tilt.Amp.rho]=...
+    cart2pol(Pup.tilt.X1-Cp.r0/Sp.Nx*Sp.Amp_offset(2,1),...
+    Pup.tilt.Y1-Cp.r0/Sp.Ny*Sp.Amp_offset(2,2)); % pupil plane with mask offset
+[Pup.exc.tilt.W.phi,Pup.exc.tilt.W.rho]=...
+    cart2pol(Pup.tilt.X1-Cp.r0/Sp.Nx*Sp.Ab_offset(2,1),...
+    Pup.tilt.Y1-Cp.r0/Sp.Ny*Sp.Ab_offset(2,2)); % pupil plane with aberration excitation offset
+
+% Beam Amplitudes (_d: depletion, _e: excitation) 
+Pup.sted.Amp(pupil)=Amplitude_pup(Pup.sted.tilt.Amp.rho(pupil),Sp.w(1)); % STED Intensity profile
+Pup.exc.Amp(pupil)=Amplitude_pup(Pup.exc.tilt.Amp.rho(pupil),Sp.w(2)); % STED Intensity profile
+% Phase mask
+Pup.sted.M(pupil)=angle(phase_mask(Pup.sted.tilt.M.rho(pupil),...
+    Pup.sted.tilt.M.phi(pupil),Sp,Cp,C.mode)); % phase mask
+% Effective phase mask
+Pup.sted.M_eff(pupil_wind)=Pup.sted.M(pupil_wind);
+
+% Pupil functions
+Pup.sted.W(pupil)=angle(exp(1i*Zernike11(Pup.sted.tilt.W.rho(pupil)./Cp.r0,...
+    Pup.sted.tilt.W.phi(pupil),Sp,1))); % Wavefront
+Pup.exc.W(pupil)=angle(exp(1i*Zernike11(Pup.exc.tilt.W.rho(pupil)./Cp.r0,...
+    Pup.exc.tilt.W.phi(pupil),Sp,2))); % Wavefront

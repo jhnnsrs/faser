@@ -8,9 +8,12 @@ from scipy.sparse import random
 
 def main(**kwargs):
     viewer = napari.Viewer()
+    # viewer.window.add_dock_widget(parameters, area="right", name="Sampling parameters")
+    #░viewer.window.add_dock_widget(input_beam_gui, area="right", name="Input Beam")
+    # viewer.window.add_dock_widget(focusing_geometry_gui, area="right", name="Focusing Geometry")
     viewer.window.add_dock_widget(generate_psf_gui, area="right", name="Faser")
     viewer.window.add_dock_widget(convolve_image_gui, area="right", name="Convov")
-    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Combine")
+    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Effective STED PSF")
 
     XY = 100
     Z = 20

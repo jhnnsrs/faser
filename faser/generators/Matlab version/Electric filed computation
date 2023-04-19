@@ -1,0 +1,83 @@
+function [Ex2,Ey2,Ez2]=Electric_field_computation(C,Sp,Cp,Foc,beam,mode)
+
+Ex2=0;
+Ey2=0;
+Ez2=0;
+
+for theta=0:Cp.deltatheta:Cp.alpha_int
+    for phi=0:Cp.deltaphi:2*pi-Cp.deltaphi
+
+        ci=cos(phi);ca=cos(theta);
+        si=sin(phi);sa=sin(theta);
+
+        % refracted angles
+        theta2=asin((Sp.n1/Sp.n2)*sin(theta));
+        c2a=cos(theta2);
+        theta3=asin((Sp.n2/Sp.n3)*sin(theta2));
+        c3a=cos(theta3);s3a=sin(theta3);
+
+        % Coordinates on tilted pupil
+        x_pup_prime=Sp.WD*(Cp.cg*sa*ci-Cp.sg*ca);y_pup_prime=Sp.WD*sa*si; %Cartesian
+        rho_pup_prime=sqrt(x_pup_prime.^2+y_pup_prime.^2);
+        phi_pup_prime=atan2(y_pup_prime,x_pup_prime);
+%         phi_pup_prime=phi;
+        theta_pup_prime=asin(rho_pup_prime/Sp.WD); % Spherical (also = theta-gamma)
+
+        cat=cos(theta_pup_prime);sat=sin(theta_pup_prime);
+
+        % Apodization factor
+        a=sqrt(ca);
+
+        % Cylindrical coordinates on pupil
+%         [~,rho_amp]=cart2pol(x_pup_prime-Cp.r0/Sp.Nx*Sp.Amp_offset(beam,1),y_pup_prime-Cp.r0/Sp.Ny*Sp.Amp_offset(beam,2));
+%         [phi_mask,rho_mask]=cart2pol(x_pup_prime-Cp.r0/Sp.Nx*Sp.M_offset(beam,1),...
+%             y_pup_prime-Cp.r0/Sp.Ny*Sp.M_offset(beam,2));
+%         [phi_ab,rho_ab]=cart2pol(x_pup_prime-Cp.r0/Sp.Nx*Sp.Ab_offset(beam,1),...
+%            y_pup_prime-Cp.r0/Sp.Ny*Sp.Ab_offset(beam,2));
+
+        Amp=0;
+        M=1;
+        W=0;
+        
+        if theta_pup_prime<=Cp.alpha_eff
+            % Amplitude profile incident beam
+            Amp=exp(-rho_pup_prime^2/Sp.w(beam)^2);
+            if beam==1
+                M=phase_mask(rho_pup_prime,phi_pup_prime,Sp,Cp,mode);
+            end
+            % Wavefront
+            W=exp(1i*2*pi*Zernike11(rho_pup_prime/Cp.r0,phi_pup_prime,Sp,beam));
+        end
+
+        %incident beam polarization cases
+        p0x=[cos(Cp.psi(beam))*cos(Cp.eps(beam))-1i*sin(Cp.psi(beam))*sin(Cp.eps(beam)),...
+            ci,-si];
+        p0y=[sin(Cp.psi(beam))*cos(Cp.eps(beam))+1i*cos(Cp.psi(beam))*sin(Cp.eps(beam)),...
+            si,ci];
+        p0z=0;
+
+        %selected STED incident beam polarization
+        P0=[p0x(1,C.pol(beam));p0y(1,C.pol(beam));p0z];
+
+        [Tp,Ts]= Fresnel_coeff(Sp,Cp,ca,c2a,c3a,beam);
+    
+        T=[Tp*c3a*ci^2+Ts*si^2 Tp*si*ci*c3a-Ts*ci*si Tp*s3a*ci;
+            Tp*c3a*ci*si-Ts*si*ci Tp*c3a*si^2+Ts*ci^2 Tp*s3a*si;
+            -Tp*ci*s3a -Tp*s3a*si Tp*c3a];   
+        
+        %polarization in focal region
+        P=T*P0;
+
+        %numerical calculation of field distribution in focal region 
+        propagation=exp(1i*Cp.k0(beam)*Sp.n1*(Foc.X2*ci*sa+Foc.Y2t*si*sa)).*...
+            exp(1i*Cp.k0(beam)*Sp.n3*c3a*Foc.Z2t)*Cp.deltatheta*Cp.deltaphi;
+
+        % Aberration term from the coverslip
+        Ab_wind_d=exp(1i*Cp.k0(beam)*(Sp.n3*Sp.depth*c3a-Sp.n1*(Sp.thick+Sp.depth)*ca));
+
+        % STED PSF calculation
+        Ex2=Ex2+P(1,1)*sat*a*Amp*M*W*Ab_wind_d*propagation;
+        Ey2=Ey2+P(2,1)*sat*a*Amp*M*W*Ab_wind_d*propagation;
+        Ez2=Ez2+P(3,1)*sat*a*Amp*M*W*Ab_wind_d*propagation;
+    end
+end
