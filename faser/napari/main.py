@@ -10,7 +10,7 @@ def main(**kwargs):
     viewer = napari.Viewer()
     viewer.window.add_dock_widget(generate_psf_gui, area="right", name="Faser")
     viewer.window.add_dock_widget(convolve_image_gui, area="right", name="Convov")
-    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Convov")
+    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Combine")
 
     XY = 100
     Z = 20
