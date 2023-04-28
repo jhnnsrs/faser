@@ -13,6 +13,7 @@ from skimage.transform import resize
 # from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 
 slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
+tilt_slider = {"widget_type": "FloatSlider", "min": 0, "max": 90, "step": 0.05}
 detector_slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
 beam_slider = {"widget_type": "FloatSlider", "min": 0.5, "max": 50, "step":0.5}
@@ -35,6 +36,7 @@ viewer = None
     trefoil_v=slider,
     trefoil_h=slider,
     spherical=slider,
+    tilt_angle=tilt_slider,
     gaussian_beam_noise=detector_slider,
     detector_gaussian_noise=detector_slider,
 )
@@ -59,6 +61,7 @@ def generate_psf_gui(
     trefoil_v=0.0,
     trefoil_h=0.0,
     spherical=0.0,
+    tilt_angle=0.0,
     gaussian_beam_noise=0.0,
     detector_gaussian_noise=0.0,
     add_detector_poisson_noise=False,
@@ -124,8 +127,8 @@ def generate_psf_gui(
                 # waist=waist*1e-3,
         # ampl_offset=ampl_offset,
                 
-        # psi=psi,
-        # eps=eps,
+        psi_degree=psi,
+        eps_degree=eps,
         
         # aberration_offset=aberration_offset,
         # vc=vc,
@@ -140,7 +143,7 @@ def generate_psf_gui(
         # n3=n3,
         # thick=thick*1e-6,
         # depth=depth*1e-6,
-        # tilt_angle=tilt_angle,
+        tilt_angle_degree=tilt_angle,
         # wind=wind,
         # t_wind=t_wind*1e-3,
         # r_wind=r_wind*1e-3,
@@ -163,21 +166,12 @@ def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
     gaussian_layers = (
         layer
         for layer in viewer.layers.selection
-        if layer.metadata.get("is_psf", False)
-        and layer.metadata.get("config", None)
-        and layer.metadata.get("config", None).mode == Mode.GAUSSIAN
+        if layer.metadata.get("is_psf", True)
     )
 
-    non_gaussian_layers = (
-        layer
-        for layer in viewer.layers.selection
-        if layer.metadata.get("is_psf", False)
-        and layer.metadata.get("config", None)
-        and layer.metadata.get("config", None).mode != Mode.GAUSSIAN
-    )
 
     psf_layer_one = next(gaussian_layers)
-    psf_layer_two = next(non_gaussian_layers)
+    psf_layer_two = next(gaussian_layers)
     new_psf = np.multiply(
         psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat)
     )
@@ -224,3 +218,49 @@ def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
         con.squeeze(),
         name=f"Convoled {image_layer.name} with {psf_layer.name}",
     )
+
+
+@magicgui(
+    call_button="Generate Space",
+)
+
+def generate_space(viewer: napari.Viewer, x_size = 100, y_size = 100, z_size = 20, dots: int = 50):
+
+
+    x = np.random.randint(0, x_size, size=(dots))
+    y = np.random.randint(0, y_size, size=(dots))
+    z = np.random.randint(0, z_size, size=(dots))
+
+    M = np.zeros((z_size, x_size, y_size))
+    for p in zip(z, x, y):
+        M[p] = 1
+
+    viewer.add_image(M, name="Space")
+
+
+
+@magicgui(
+    call_button="Generate Space",
+)
+
+def calculate_fwhm(viewer: napari.Viewer):
+
+
+    psf_layer = next(
+        layer
+        for layer in viewer.layers.selection
+        if layer.metadata.get("is_psf", False)
+    )
+
+    psf_data = psf_layer.data
+    # caluclate max coordinate
+    max_coord = np.argmax(psf_data, axis=None)
+    for axes in max_coord:
+        
+
+
+
+
+
+
+    viewer.add_image(M, name="Space")
