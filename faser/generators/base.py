@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Callable
 import numpy as np
-from pydantic import BaseModel, validator, root_validator, validate_model
-
+from pydantic import BaseModel, validator, root_validator, validate_model, Field
+from functools import cached_property
 
 class Mode(int, Enum):
     GAUSSIAN = 1
@@ -90,102 +90,127 @@ class PSFConfig(BaseModel):
   
     # Geometry parameters
     NA: float = 1.0  # numerical aperture of objective lens
-    WD = 2.8e-3  # working distance of the objective in meter
-    n1 = 1.33  # refractive index of immersion medium
-    n2=1.52 # refractive index of the glass coverslip
-    n3=1.38 # refractive index of the Sample
-    collar = 170e-6  # thickness of the coverslip corrected by the collar
-    thick=170e-6    # Thickness of the coverslip
-    depth=10e-6     # Depth in the sample
-    gamma=1 # Tilt angle (in °)
+    WD: float = 2.8e-3  # working distance of the objective in meter
+    n1: float = 1.33  # refractive index of immersion medium
+    n2: float=1.52 # refractive index of the glass coverslip
+    n3: float =1.38 # refractive index of the Sample
+    collar: float= 170e-6  # thickness of the coverslip corrected by the collar
+    thick: float =170e-6    # Thickness of the coverslip
+    depth: float =10e-6     # Depth in the sample
 
     # Beam parameters
-    wavelength = 592e-9  # wavelength of light in meter
-    waist = 8e-3
+    wavelength: float = 592e-9  # wavelength of light in meter
+    waist: float = 8e-3
     ampl_offset_x: float = 0  # offset of the amplitude profile in regard to pupil center
     ampl_offset_y: float = 0
 
     # Polarization parameters
-    psi=0   # Direction of elliptical polar (0: horizontal, 90 vertical)
-    eps=45  # Ellipticity (-45: right-handed circular polar, 0: linear, 45: left-handed circular)
-
+    psi_degree: float=0   # Direction of elliptical polar (0: horizontal, 90 vertical)
+    eps_degree: float=45  # Ellipticity (-45: right-handed circular polar, 0: linear, 45: left-handed circular)
+    tilt_angle_degree: float=0  # Tilt angle (in °)
+   
     # STED parameters
-    I_sat = 0.1  # Saturation factor of depletion
-    ring_radius = 0.46  # radius of the ring phase mask (on unit pupil)
+    I_sat: float = 0.1  # Saturation factor of depletion
+    ring_radius: float = 0.46  # radius of the ring phase mask (on unit pupil)
     vc: float = 1.0  # vortex charge (should be integer to produce donut) # TODO: topological charge
     rc: float = 1  # ring charge (should be integer to produce donut)
-    mask_offset_x = 0  # offset of the phase mask in regard of the pupil center
-    mask_offset_y = 0
-    p=0.5   # intensity repartition in donut and bottle beam (p donut, (1-p) bottle)
+    mask_offset_x: float = 0  # offset of the phase mask in regard of the pupil center
+    mask_offset_y: float = 0
+    p: float =0.5   # intensity repartition in donut and bottle beam (p donut, (1-p) bottle)
 
     # Aberration
-    aberration: Aberration = Aberration()
-    aberration_offset_x = 0  # offset of the aberration in regard of the pupil center
-    aberration_offset_y= 0
+    aberration: Aberration = Field(default_factory=Aberration)
+    aberration_offset_x: float = 0  # offset of the aberration in regard of the pupil center
+    aberration_offset_y: float= 0
 
     # sampling parameters
-    LfocalX = 1.5e-6  # observation scale X (in m)
-    LfocalY = 1.5e-6  # observation scale Y (in m)
-    LfocalZ = 2e-6  # observation scale Z (in m)
-    Nx = 31  # discretization of image plane - better be odd number
-    Ny = 31
-    Nz = 31
-    Ntheta = 31 # integration step
-    Nphi = 31
-    threshold=0.001
-    it=1
+    LfocalX: float = 1.5e-6  # observation scale X (in m)
+    LfocalY: float = 1.5e-6  # observation scale Y (in m)
+    LfocalZ: float = 2e-6  # observation scale Z (in m)
+    Nx: int = 31  # discretization of image plane - better be odd number
+    Ny: int = 31
+    Nz: int = 31
+    Ntheta: int = 31 # integration step
+    Nphi: int = 31
+    threshold: float=0.001
+    it: int =1
 
-    # Calculated Parameters
-    k0 = 2 * np.pi / wavelength  # wavenumber (m^-1)
-    alpha = np.arcsin(NA / n1)  # maximum focusing angle of the objective (in rad)
-    r0 = WD * np.sin(alpha)  # radius of the pupil (in m)
-
-    # convert angle in red
-    gamma=gamma*np.pi/180 # tilt angle (in rad)
-    psi=psi*np.pi/180 # polar direction
-    eps=eps*np.pi/180 # ellipticity
-
-    sg=np.sin(gamma)
-    cg=np.cos(gamma)
-
-    alpha_int=alpha+abs(gamma) # Integration range (in rad)
-    r0_int=WD*np.sin(alpha_int)  # integration radius on pupil (in m)
-    #waist=waist*r0
-
-    #e_wind = 2.23e-3    # thichkness of the window (in m)
-    #if wind == 1
-    #   r_wind=1.5e-3 # radius of the old cranial window (in m)
-    #elseif wind==2
-    #    r_wind=2.3e-3   # radius of the new cranial window (in m)
-    #elseif wind==3
-    #    r_wind=1000*e_wind
-    #else
-    #    disp('unknown request');
-    
-    # Impact of the cranial window
-    #alpha_eff=min(np.atan(r_wind/e_wind),alpha)  # effective focalization angle in presence of the cranial window
-    #NA_eff=min(n1*sin(alpha_eff),NA)    # Effective NA in presence of the cranial window
-    #r0_eff=WD*sin(alpha_eff)    # Effective pupil radius 'in m)
-    
-    # Corrected focus position
-    alpha2=np.arcsin((n1/n2)*np.sin(alpha))
-    alpha3=np.arcsin((n2/n3)*np.sin(alpha2))
-    # Cp.Dfoc=Sp.depth*(tan(Cp.alpha_eff)/tan(Cp.alpha3_eff)-1)+Sp.thick*(tan(Cp.alpha_eff)-tan(Cp.alpha2_eff))/tan(Cp.alpha3_eff);
-    Dfoc=0.053*depth+0.173*(thick-collar) # No aberration correction
-    # Cp.Dfoc=0.053*Sp.depth+0.4*(Sp.thick); % No aberration correction
-
-    # Step and range of integral
-    deltatheta=alpha_int/Ntheta
-    deltaphi=2*np.pi/Nphi
+   
 
     # Noise Parameters
-    gaussian_beam_noise = 0.0
-    detector_gaussian_noise = 0.0
+    gaussian_beam_noise: float = 0.0
+    detector_gaussian_noise: float = 0.0
 
-    add_detector_poisson_noise = False  # standard deviation of the noise
+    add_detector_poisson_noise: bool = False  # standard deviation of the noise
 
     # Normalization
-    rescale = True  # rescale the PSF to have a maximum of 1
+    rescale: bool = True  # rescale the PSF to have a maximum of 1
+
+
+    @property
+    def k0(self):
+        return 2 * np.pi / self.wavelength
+
+    @property
+    def alpha(self):
+        return np.arcsin(self.NA / self.n1)  # maximum focusing angle of the objective (in rad)
+   
+    @property
+    def r0(self):
+        return self.WD * np.sin(self.alpha)  # radius of the pupil (in m)
+
+  # convert angle in red
+    @property
+    def gamma(self):
+        return self.tilt_angle_degree*np.pi/180 # tilt angle (in rad)
+    
+    @property
+    def psi(self):
+        return self.psi_degree * np.pi/180 # polar direction
+    
+    @property
+    def eps(self):
+        return self.eps_degree * np.pi/180 # ellipticity
+    
+    
+    @property
+    def sg(self):
+        return np.sin(self.gamma)
+    
+    @property
+    def cg(self):
+        return np.cos(self.gamma)
+    
+    @property
+    def alpha_int(self):
+        return self.alpha+abs(self.gamma) # Integration range (in rad)
+    
+    @property
+    def r0_int(self):
+        return self.WD*np.sin(self.alpha_int)  # integration radius on pupil (in m)
+    
+    @property
+    def alpha2(self):
+        return np.arcsin((self.n1/self.n2)*np.sin(self.alpha))
+    
+    @property
+    def alpha3(self):
+        return np.arcsin((self.n2/self.n3)*np.sin(self.alpha2))
+    
+    @property
+    def Dfoc(self):
+        return 0.053*self.depth+0.173*(self.thick-self.collar) # No aberration correction
+    
+    @property
+    def deltatheta(self):
+        return self.alpha_int/self.Ntheta
+    
+    @property
+    def deltaphi(self):
+        return 2*np.pi/self.Nphi
+ 
+
+
 
     @root_validator
     def validate_NA(cls, values):

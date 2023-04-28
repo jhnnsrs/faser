@@ -297,4 +297,4 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
         # We are only rescaling to the max, not the min
         I1 = I1 / np.max(I1)
 
-    return np.moveaxis(I1, 2, 0)
+    return np.real(np.moveaxis(I1, 2, 0))
