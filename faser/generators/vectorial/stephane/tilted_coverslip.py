@@ -22,7 +22,7 @@ def Amplitude(x, y, s: PSFConfig):
     )
     return Amp
 
-def zernike(rho, phi, a: Aberration):
+def zernike(rho, phi, a: PSFConfig):
     
     Z1 = 1
     Z2 = 2 * rho * np.cos(phi)  # Tip
@@ -217,7 +217,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
                     * zernike(
                         rho_ab / s.r0,
                         phi_ab,
-                        s.aberration,
+                        s,
                     )
                 )
             else:
@@ -286,10 +286,6 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     Iz2 = np.multiply(np.conjugate(Ez2), Ez2)
     I1 = Ix2 + Iy2 + Iz2
     #I1 = np.real(I1)
-
-    # Add Poisson noise to I1
-    if s.add_detector_poisson_noise:
-        I1 = poisson_noise(I1)
 
     I1 = I1 + np.abs(np.random.normal(0, s.detector_gaussian_noise, I1.shape))
 

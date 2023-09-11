@@ -1,7 +1,7 @@
 import napari
 import numpy as np
 from magicgui import magic_factory, magicgui
-from faser.generators.base import Aberration, PSFConfig, Mode, Polarization, WindowType
+from faser.generators.base import PSFConfig, Mode, Polarization, WindowType
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 import numpy as np
 # import napari
@@ -94,7 +94,7 @@ def generate_psf_gui(
     # waist=50.0,
     # ampl_offset= [0,0],
 ):
-    aberration = Aberration(
+    config = PSFConfig(
         a1=piston,
         a2=tip,
         a3=tilt,
@@ -106,14 +106,11 @@ def generate_psf_gui(
         a9=trefoil_v,
         a10=trefoil_h,
         a11=spherical,
-    )
-    config = PSFConfig(
         Nx=Nx,
         Ny=Ny,
         Nz=Nz,
         Ntheta=Ntheta,
         Nphi=Nphi,
-        aberration=aberration,
         mode=mode,
         polarization=polarization,
         gaussian_beam_noise=gaussian_beam_noise,
@@ -153,7 +150,7 @@ def generate_psf_gui(
     print(psf.max())
     return viewer.add_image(
         psf,
-        name=f"PSF {config.mode.name} {config.aberration} ",
+        name=f"PSF {config.mode.name} {config} ",
         metadata={"is_psf": True, "config": config},
     )
 
@@ -255,12 +252,4 @@ def calculate_fwhm(viewer: napari.Viewer):
     psf_data = psf_layer.data
     # caluclate max coordinate
     max_coord = np.argmax(psf_data, axis=None)
-    for axes in max_coord:
-        
-
-
-
-
-
-
     viewer.add_image(M, name="Space")

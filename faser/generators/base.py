@@ -3,6 +3,34 @@ from typing import Callable
 import numpy as np
 from pydantic import BaseModel, validator, root_validator, validate_model, Field
 from functools import cached_property
+from annotated_types import Gt, Len, Predicate, BaseMetadata, Lt
+from dataclasses import dataclass
+from typing import Protocol, TypeVar, Type, Any, Optional, Union, List, Tuple
+from typing import Annotated
+
+
+
+@dataclass(frozen=True,slots= True)
+class Step(BaseMetadata):
+    """Gt(gt=x) implies that the value must be greater than x.
+
+    It can be used with any type that supports the ``>`` operator,
+    including numbers, dates and times, strings, sets, and so on.
+    """
+
+    x: int
+
+
+@dataclass(frozen=True,slots= True)
+class Slider(BaseMetadata):
+    """Gt(gt=x) implies that the value must be greater than x.
+
+    It can be used with any type that supports the ``>`` operator,
+    including numbers, dates and times, strings, sets, and so on.
+    """
+
+    step: int
+
 
 class Mode(int, Enum):
     GAUSSIAN = 1
@@ -42,25 +70,6 @@ class AberrationFloat(float):
         return v
 
 
-class Aberration(BaseModel):
-    a1: AberrationFloat = 0
-    a2: AberrationFloat = 0
-    a3: AberrationFloat = 0
-    a4: AberrationFloat = 0
-    a5: AberrationFloat = 0
-    a6: AberrationFloat = 0
-    a7: AberrationFloat = 0
-    a8: AberrationFloat = 0
-    a9: AberrationFloat = 0
-    a10: AberrationFloat = 0
-    a11: AberrationFloat = 0
-
-    def to_name(self) -> str:
-        return "_".join(
-            map(lambda value: f"{value[0]}-{value[1]}", self.dict().items())
-        )
-
-
 #class EffectivePSFGeneratorConfig(BaseModel):
 #    I_sat: float = 0.1  # Saturation factor of depletion
 
@@ -85,56 +94,60 @@ class PSFConfig(BaseModel):
     mode: Mode = Mode.GAUSSIAN
     polarization: Polarization = Polarization.ELLIPTICAL
 
-    # Window Type?
-    wind: WindowType = WindowType.NEW
-  
     # Geometry parameters
-    NA: float = 1.0  # numerical aperture of objective lens
-    WD: float = 2.8e-3  # working distance of the objective in meter
+    NA: Annotated[float, Step(0.1)] = Field(default=1, description="numerical aperture of objective lens", gt=0.4, lt=1.4)
+    WDMM: float = 2800  # working distance of the objective in meter
     n1: float = 1.33  # refractive index of immersion medium
     n2: float=1.52 # refractive index of the glass coverslip
     n3: float =1.38 # refractive index of the Sample
-    collar: float= 170e-6  # thickness of the coverslip corrected by the collar
-    thick: float =170e-6    # Thickness of the coverslip
-    depth: float =10e-6     # Depth in the sample
+    thickMM: float =170    # Thickness of the coverslip
+    collarMM: float= Field(default=170, description="Tilt of the coverslip in angle", gt=0, lt=400)
+    depthMM: float  = Field(default=10, description="Tilt of the coverslip in angle", gt=0, lt=150)
 
     # Beam parameters
-    wavelength: float = 592e-9  # wavelength of light in meter
-    waist: float = 8e-3
+    wavelengthMM: float = 0.592  # wavelength of light in meter
+    waistMM: float = Field(default=8000, description="Tilt of the coverslip in angle", gt=0, lt=20000)
     ampl_offset_x: float = 0  # offset of the amplitude profile in regard to pupil center
     ampl_offset_y: float = 0
 
     # Polarization parameters
-    psi_degree: float=0   # Direction of elliptical polar (0: horizontal, 90 vertical)
-    eps_degree: float=45  # Ellipticity (-45: right-handed circular polar, 0: linear, 45: left-handed circular)
-    tilt_angle_degree: float=0  # Tilt angle (in °)
+    psi_degree: float= Field(default=0, description="Tilt of the coverslip in angle", gt=0, lt=180)
+    eps_degree: float  = Field(default=45, description="Tilt of the coverslip in angle", gt=-45, lt=45)
+    tilt_angle_degree: float = Field(default=0, description="Tilt of the coverslip in angle", gt=-10, lt=10)
    
     # STED parameters
     I_sat: float = 0.1  # Saturation factor of depletion
     ring_radius: float = 0.46  # radius of the ring phase mask (on unit pupil)
     vc: float = 1.0  # vortex charge (should be integer to produce donut) # TODO: topological charge
-    rc: float = 1  # ring charge (should be integer to produce donut)
+    rc: float = 1.0  # ring charge (should be integer to produce donut)
     mask_offset_x: float = 0  # offset of the phase mask in regard of the pupil center
     mask_offset_y: float = 0
-    p: float =0.5   # intensity repartition in donut and bottle beam (p donut, (1-p) bottle)
+    p: float = Field(default=0.5, description="Tilt of the coverslip in angle", gt=0, lt=1)
 
     # Aberration
-    aberration: Aberration = Field(default_factory=Aberration)
+    a1: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a2: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a3: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a4: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a5: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a6: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a7: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a8: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a9: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a10: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
+    a11: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
     aberration_offset_x: float = 0  # offset of the aberration in regard of the pupil center
     aberration_offset_y: float= 0
 
     # sampling parameters
-    LfocalX: float = 1.5e-6  # observation scale X (in m)
-    LfocalY: float = 1.5e-6  # observation scale Y (in m)
-    LfocalZ: float = 2e-6  # observation scale Z (in m)
+    LfocalXMM: float = 1.5  # observation scale X (in m)
+    LfocalYMM: float = 1.5 # observation scale Y (in m)
+    LfocalZMM: float = 2 # observation scale Z (in m)
     Nx: int = 31  # discretization of image plane - better be odd number
     Ny: int = 31
     Nz: int = 31
     Ntheta: int = 31 # integration step
     Nphi: int = 31
-    threshold: float=0.001
-    it: int =1
-
    
 
     # Noise Parameters
@@ -145,6 +158,51 @@ class PSFConfig(BaseModel):
 
     # Normalization
     rescale: bool = True  # rescale the PSF to have a maximum of 1
+
+
+    @property
+    def WD(self):
+        return self.WDMM / 1000000
+
+
+    @property
+    def wavelength(self):
+        return self.wavelengthMM / 1000000
+    
+    @property
+    def waist(self):
+        return self.waistMM / 1000000
+
+    @property
+    def collar(self):
+        return self.collarMM / 1000000
+    
+    @property
+    def thick(self):
+        return self.thickMM / 1000000
+    
+    @property
+    def depth(self):
+        return self.depthMM / 1000000
+    
+    
+    @property
+    def LfocalX(self):
+        return self.LfocalXMM / 1000000
+
+
+    @property
+    def LfocalZ(self):
+        return self.LfocalZMM / 1000000
+    
+    @property
+    def LfocalY(self):
+        return self.LfocalYMM / 1000000
+    
+    @property
+    def LfocalX(self):
+        return self.LfocalXMM / 1000000
+
 
 
     @property
@@ -223,6 +281,10 @@ class PSFConfig(BaseModel):
             )
 
         return values
+    
+    class Config:
+        validate_assignment = True
+        extra = "forbid"
     
 
 PSFGenerator = Callable[[PSFConfig], np.ndarray]

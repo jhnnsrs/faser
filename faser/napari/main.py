@@ -4,18 +4,44 @@ import napari
 import numpy as np
 import argparse
 from scipy.sparse import random
+from faser.napari.widgets.main_widget import MainWidget
+from faser.napari.widgets.tob_bar import TopBar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def main(**kwargs):
     viewer = napari.Viewer()
-    # viewer.window.add_dock_widget(parameters, area="right", name="Sampling parameters")
-    #░viewer.window.add_dock_widget(input_beam_gui, area="right", name="Input Beam")
-    # viewer.window.add_dock_widget(focusing_geometry_gui, area="right", name="Focusing Geometry")
-    viewer.window.add_dock_widget(generate_psf_gui, area="right", name="Faser")
-    viewer.window.add_dock_widget(convolve_image_gui, area="right", name="Convov")
-    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Effective STED PSF")
-    viewer.window.add_dock_widget(generate_space, area="right", name="Generate Space")
 
+    main = MainWidget(viewer)
+    viewer.window.add_dock_widget(main, area="right", name="PSF")
+    viewer.window.add_dock_widget(convolve_image_gui, area="right", name="Convolve")
+    viewer.window.add_dock_widget(make_effective_gui, area="right", name="Effective")
+    viewer.window.add_dock_widget(generate_space, area="right", name="Space")
     
     napari.run()
 
