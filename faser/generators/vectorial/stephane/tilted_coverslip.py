@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 from pkg_resources import working_set  #
 from faser.generators.base import *
-
+from faser.generators.utils import polar_to_cartesian
 
 def cart_to_polar(x, y) -> Tuple[np.ndarray, np.ndarray]:
     rho = np.sqrt(np.square(x) + np.square(y))
@@ -25,6 +25,37 @@ def Amplitude(x, y, s: PSFConfig):
 
 
 def zernike(rho, phi, a: PSFConfig):
+
+    Z1 = 1
+    Z2 = 2 * rho * np.cos(phi)  # Tip
+    Z3 = 2 * rho * np.sin(phi)  # Tilt
+    Z4 = np.sqrt(3) * (2 * rho**2 - 1)  # Defocus
+    Z5 = np.sqrt(6) * (rho**2) * np.cos(2 * phi)  # Astigmatism vertical
+    Z6 = np.sqrt(6) * (rho**2) * np.sin(2 * phi)  # Astigmatism oblque
+    Z7 = np.sqrt(8) * (3 * rho**3 - 2 * rho) * np.cos(phi)  # coma horizontal
+    Z8 = np.sqrt(8) * (3 * rho**3 - 2 * rho) * np.sin(phi)  # coma vertical
+    Z9 = np.sqrt(8) * (rho**3) * np.cos(3 * phi)  # Trefoil vertical
+    Z10 = np.sqrt(8) * (rho**3) * np.sin(3 * phi)  # Trefoil oblique
+    Z11 = np.sqrt(5) * (6 * rho**4 - 6 * rho**2 + 1)  # Spherical
+    zer = (
+        a.a1 * Z1
+        + a.a2 * Z2
+        + a.a3 * Z3
+        + a.a4 * Z4
+        + a.a5 * Z5
+        + a.a6 * Z6
+        + a.a7 * Z7
+        + a.a8 * Z8
+        + a.a9 * Z9
+        + a.a10 * Z10
+        + a.a11 * Z11
+    )
+    return zer
+
+
+
+
+def zernike_array(rho, phi, a: PSFConfig):
 
     Z1 = 1
     Z2 = 2 * rho * np.cos(phi)  # Tip
@@ -103,6 +134,71 @@ def poisson_noise(image, seed=None):
     return out
 
 
+def generate_intensity_profile(s: PSFConfig):
+
+    # Sample Space
+    x1 = np.linspace(-s.r0, s.r0, s.Nx)
+    y1 = np.linspace(-s.r0, s.r0, s.Ny)
+    [X1, Y1] = np.meshgrid(x1, y1)
+
+
+    return Amplitude(
+                    X1 - s.r0 / s.Nx * s.ampl_offset_x,
+                    Y1 - s.r0 / s.Ny * s.ampl_offset_y,
+                    s,
+                )
+
+
+def generate_phase_mask(s: PSFConfig):
+
+    # Sample Space
+    x1 = np.linspace(-s.r0, s.r0, s.Nx)
+    y1 = np.linspace(-s.r0, s.r0, s.Ny)
+    [X1, Y1] = np.meshgrid(x1, y1)
+
+
+    rho, phi = cart_to_polar(X1 - s.r0 / s.Nx * s.mask_offset_x , Y1 - s.r0 / s.Ny * s.mask_offset_y)
+    phased = phase_mask_array(rho,phi,s)
+    return phased
+
+
+def generate_aberration(s: PSFConfig):
+
+    # Sample Space
+    x1 = np.linspace(-s.r0, s.r0, s.Nx)
+    y1 = np.linspace(-s.r0, s.r0, s.Ny)
+    [X1, Y1] = np.meshgrid(x1, y1)
+
+
+    rho, phi = cart_to_polar(X1 - s.r0 / s.Nx * s.aberration_offset_x , Y1 - s.r0 / s.Ny * s.aberration_offset_y)
+    phased = zernike(rho,phi,s)
+    return phased
+
+
+# phase mask function
+def phase_mask_array(
+    rho: np.ndarray,
+    phi: np.ndarray,
+    s: PSFConfig,
+):
+    if s.mode == Mode.GAUSSIAN:  # gaussian
+        mask = np.ones(rho.shape)
+    elif s.mode == Mode.DONUT:  # donut
+        mask = s.vc * phi
+    elif s.mode == Mode.BOTTLE:  # bottle
+        cutoff_radius = s.ring_radius * s.r0
+        mask = s.rc * np.pi * np.ones(rho.shape)
+        mask[rho > cutoff_radius] = 0
+    elif s.mode == Mode.DONUT_BOTTLE:  # Donut & Bottle
+        raise NotImplementedError("No display Donut and Bottle")
+    else:
+        raise NotImplementedError("Please use a specified Mode")
+    return mask
+
+
+
+
+
 # phase mask function
 def phase_mask(
     rho: np.ndarray,
@@ -114,7 +210,7 @@ def phase_mask(
     elif s.mode == Mode.DONUT:  # donut
         mask = np.exp(1j * s.vc * phi)
     elif s.mode == Mode.BOTTLE:  # bottle
-        cutoff_radius = s.rc * s.r0
+        cutoff_radius = s.ring_radius * s.r0
         if rho <= cutoff_radius:
             mask = np.exp(1j * s.rc * np.pi)
         else:

@@ -10,11 +10,6 @@ import numpy as np
 # overwrite default with multiprocessing scheduler
 
 
-class OptionRange(BaseModel):
-    options: List[str]
-
-    def to_list(self):
-        return self.options
 
 
 class Model(BaseModel):

@@ -31,11 +31,11 @@ class Slider(BaseMetadata):
     step: int
 
 
-class Mode(int, Enum):
-    GAUSSIAN = 1
-    DONUT = 2
-    BOTTLE = 3
-    DONUT_BOTTLE = 4
+class Mode(str, Enum):
+    GAUSSIAN = "GAUSSIAN"
+    DONUT = "DONUT"
+    BOTTLE = "BOTTLE"
+    DONUT_BOTTLE = "DONUT_BOTTLE"
 
 
 class WindowType(str, Enum):
@@ -95,7 +95,7 @@ class PSFConfig(BaseModel):
 
     # Geometry parameters
     NA: Annotated[float, Step(0.1)] = Field(
-        default=1, description="numerical aperture of objective lens", gt=0.4, lt=1.4
+        default=1, description="LABEL: numerical aperture of objective lens", gt=0.4, lt=1.4
     )
     WDMM: float = 2800  # working distance of the objective in meter
     n1: float = 1.33  # refractive index of immersion medium
@@ -103,7 +103,7 @@ class PSFConfig(BaseModel):
     n3: float = 1.38  # refractive index of the Sample
     thickMM: float = 170  # Thickness of the coverslip
     collarMM: float = Field(
-        default=170, description="Tilt of the coverslip in angle", gt=0, lt=400
+        default=170, description="Correction Collar: The value will", gt=0, lt=400
     )
     depthMM: float = Field(
         default=10, description="Tilt of the coverslip in angle", gt=0, lt=150
@@ -213,9 +213,6 @@ class PSFConfig(BaseModel):
     def LfocalY(self):
         return self.LfocalYMM / 1000000
 
-    @property
-    def LfocalX(self):
-        return self.LfocalXMM / 1000000
 
     @property
     def k0(self):

@@ -12,7 +12,8 @@ import typing
 from pydantic.fields import ModelField
 from superqt import QEnumComboBox
 from enum import Enum
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+from faser.generators.utils import polar_phase_mask, polar_to_cartesian
+from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf, generate_intensity_profile, generate_phase_mask, generate_aberration
 from pydantic.types import ConstrainedFloat
 import numpy as np
 import itertools
@@ -20,7 +21,7 @@ import dask.array as da
 import dask
 import os
 from .fields import generate_single_widgets_from_model, build_key_filter
-
+from .mpl_canvas import MatplotlibDialog
 
 class ScrollableWidget(QtWidgets.QWidget):
     def __init__(
@@ -60,6 +61,7 @@ class SampleTab(QtWidgets.QWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
+        main = None,
         *args,
         filter_fields=None,
         callback=None,
@@ -69,9 +71,8 @@ class SampleTab(QtWidgets.QWidget):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.viewer = viewer
+        self.main = main
 
-        self.print = QtWidgets.QPushButton("Print")
-        self.print.clicked.connect(self.print_model)
 
         self.scroll = (
             QtWidgets.QScrollArea()
@@ -102,14 +103,7 @@ class SampleTab(QtWidgets.QWidget):
 
         self.setLayout(self.mylayout)
 
-        self.active_base_model = PSFConfig()
 
-    def model_value_changed(self, name, value):
-        self.active_base_model.__setattr__(name, value)
-        print(self.active_base_model.dict())
-
-    def print_model(self):
-        print(self.active_base_model.dict())
 
 
 @dask.delayed
@@ -117,35 +111,59 @@ def lazy_generate_psf(config: PSFConfig):
     return generate_psf(config)
 
 
+
+def generate_wavefront(config: PSFConfig):
+    num_radii = 150
+    num_angles = 300
+    polar_mask = polar_phase_mask(num_radii, num_angles)
+
+    # Convert to Cartesian coordinates
+    cartesian_mask = polar_to_cartesian(polar_mask)
+    return cartesian_mask
+
+
+
+
+
 class AbberationTab(SampleTab):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.show = QtWidgets.QPushButton("Show Wavefront")
-        self.show.clicked.connect(self.show_wavefront)
+        self.show_button = QtWidgets.QPushButton("Show Wavefront")
+        self.show_button.clicked.connect(self.show_wavefront)
+        self.wavefront_dialog = MatplotlibDialog("WaveFront", parent=self)
 
-        self.mylayout.addWidget(self.show)
+        self.mylayout.addWidget(self.show_button)
 
     def show_wavefront(self):
-        raise NotImplementedError()
+        self.wavefront_dialog.update(generate_aberration(self.main.active_base_model), "Wavefront")
+        self.wavefront_dialog.show()
+
 
 
 class BeamTab(SampleTab):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.show = QtWidgets.QPushButton("Show Intensity")
-        self.show.clicked.connect(self.show_wavefront)
+        self.show_button = QtWidgets.QPushButton("Show Intensity")
+        self.show_button.clicked.connect(self.show_intensity)
 
-        self.showp = QtWidgets.QPushButton("Show Phasemask")
-        self.showp.clicked.connect(self.show_wavefront)
+        self.showp_button = QtWidgets.QPushButton("Show Phase Mask")
+        self.showp_button.clicked.connect(self.show_phase_mask)
 
-        self.mylayout.addWidget(self.show)
-        self.mylayout.addWidget(self.showp)
+        self.intensity_dialog = MatplotlibDialog("Intensity", parent=self)
+        self.phase_mask_dialog = MatplotlibDialog("Phase Mask", parent=self)
 
-    def show_wavefront(self):
-        raise NotImplementedError()
+        self.mylayout.addWidget(self.show_button)
+        self.mylayout.addWidget(self.showp_button)
 
+    def show_intensity(self):
+        self.intensity_dialog.update(generate_intensity_profile(self.main.active_base_model), "Intensity")
+        self.intensity_dialog.show()
+
+    def show_phase_mask(self):
+        self.phase_mask_dialog.update(generate_phase_mask(self.main.active_base_model), "Phase mask")
+        self.phase_mask_dialog.show()
 
 simulation_set = [
     "LfocalXMM",
@@ -187,6 +205,7 @@ beam_set = [
     "ampl_offset_y",
     "psi_degree",
     "eps_degree",
+    "ring_radius",
     "vc",
     "rc",
     "mask_offset_x",
@@ -218,7 +237,10 @@ class MainWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.viewer = viewer
         self.simulation_tab = SampleTab(
+
             self.viewer,
+
+            main = self,
             image="placeholder.png",
             callback=self.callback,
             range_callback=self.range_callback,
@@ -226,18 +248,23 @@ class MainWidget(QtWidgets.QWidget):
         )
         self.geometry_tab = SampleTab(
             self.viewer,
+            main = self,
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(geometry_set),
         )
         self.aberration_tab = AbberationTab(
             self.viewer,
+
+            main = self,
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(aberration_set),
         )
         self.beam_tab = BeamTab(
             self.viewer,
+
+            main = self,
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(beam_set),

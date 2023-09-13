@@ -2,7 +2,7 @@ import itertools
 import os
 import typing
 from enum import Enum
-from typing import Any, Callable, Type
+from typing import Any, Callable, List, Type
 
 import dask
 import dask.array as da
@@ -24,7 +24,7 @@ from superqt import (
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
-
+from pydantic import BaseModel
 
 class FormField(QtWidgets.QWidget):
     on_child_value_changed = QtCore.pyqtSignal(str, object)
@@ -42,6 +42,7 @@ class FormField(QtWidgets.QWidget):
         self.description = field.field_info.description
         self.steps = 3
         self.toggable = toggable
+        self.range_child = None
 
     def replace_widget(self, oldwidget, newwidget):
         self.xlayout.removeWidget(oldwidget)
@@ -233,22 +234,63 @@ class FloatInputField(FormField):
     def emit_text_changed(self, value):
         self.emit_child_value_changed(float(self.child.text()))
 
+class OptionRange(pydantic.BaseModel):
+    options: List[Any]
 
+    def to_list(self):
+        return self.options
+
+
+class MultiEnumField(QtWidgets.QWidget):
+    on_range_changed = QtCore.pyqtSignal(object)
+
+    def __init__(self, *args, enum: Enum,  **kwargs):
+        super().__init__(*args, **kwargs)
+        self.enum = enum
+        self.layout = QtWidgets.QHBoxLayout()
+        self.checkboxes = []
+        self.checkable_values = []
+
+        for i in enum:
+            check = QtWidgets.QPushButton(i.name)
+            check.setCheckable(True)
+            check.clicked.connect(self.on_change_callback)
+
+            self.checkboxes.append(check)
+            self.checkable_values.append(i.value)
+            self.layout.addWidget(check)
+
+        self.setLayout(self.layout)
+
+    def on_change_callback(self):
+        print("Changed")
+        check_enums = []
+
+        for i, check in enumerate(self.checkboxes):
+            if check.isChecked():
+                check_enums.append(self.checkable_values[i])
+            else:
+                False
+
+        self.on_range_changed.emit(OptionRange(options=check_enums))
+        
+
+    
 class EnumField(FormField):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.child = QEnumComboBox()
         self.child.setEnumClass(self.field.type_)
         self.child.currentEnumChanged.connect(self.emit_child_value_changed)
-        self.child.show()
+        
 
-        self.range_child = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
-        self.range_child.valueChanged.connect(self.on_child_range_changed)
+        self.range_child = MultiEnumField(enum=self.field.type_)
+        self.range_child.on_range_changed.connect(self.on_child_range_changed)
         # TODO: Implement
 
 
 def generate_single_widgets_from_model(
-    model: Type[PSFConfig],
+    model: Type[BaseModel],
     callback: Callable[[str, Any], None],
     range_callback: Callable[[str, Any], None] = None,
     parent=None,
@@ -284,9 +326,10 @@ def generate_single_widgets_from_model(
             print(field_type)
 
         if widget is not None:
-
-            widget.on_child_value_changed.connect(callback)
-            widget.on_child_range_value_changed.connect(range_callback)
+            if callback:
+                widget.on_child_value_changed.connect(callback)
+            if range_callback:
+                widget.on_child_range_value_changed.connect(range_callback)
             widgets.append(widget)
 
     return widgets
