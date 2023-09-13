@@ -4,6 +4,7 @@ from magicgui import magic_factory, magicgui
 from faser.generators.base import PSFConfig, Mode, Polarization, WindowType
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 import numpy as np
+
 # import napari
 from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from scipy import ndimage
@@ -16,12 +17,13 @@ slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 tilt_slider = {"widget_type": "FloatSlider", "min": 0, "max": 90, "step": 0.05}
 detector_slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
-beam_slider = {"widget_type": "FloatSlider", "min": 0.5, "max": 50, "step":0.5}
+beam_slider = {"widget_type": "FloatSlider", "min": 0.5, "max": 50, "step": 0.5}
 
 viewer = None
 
+
 @magicgui(
-    call_button='Generate',
+    call_button="Generate",
     LfocalXY=focal_slider,
     LfocalZ=focal_slider,
     # waist=beam_slider,
@@ -42,7 +44,7 @@ viewer = None
 )
 def generate_psf_gui(
     viewer: napari.Viewer,
-    Nx=31, # discretization of image plane
+    Nx=31,  # discretization of image plane
     Ny=31,
     Nz=31,
     LfocalXY=2,  # observation scale X and Y
@@ -77,7 +79,6 @@ def generate_psf_gui(
     polarization: Polarization = Polarization.ELLIPTICAL,
     psi=0,
     eps=45,
-
     # aberration_offset=[0.0,0.0],
     # NA=1.0,
     # WD=2.8,
@@ -121,12 +122,10 @@ def generate_psf_gui(
         LfocalZ=LfocalZ * 1e-6,
         rescale=rescale,
         # wavelength=wavelength*1e-9,
-                # waist=waist*1e-3,
+        # waist=waist*1e-3,
         # ampl_offset=ampl_offset,
-                
         psi_degree=psi,
         eps_degree=eps,
-        
         # aberration_offset=aberration_offset,
         # vc=vc,
         # rc=rc,
@@ -154,6 +153,7 @@ def generate_psf_gui(
         metadata={"is_psf": True, "config": config},
     )
 
+
 @magicgui(
     call_button="Effective PSF",
     I_sat=slider,
@@ -161,17 +161,12 @@ def generate_psf_gui(
 def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
 
     gaussian_layers = (
-        layer
-        for layer in viewer.layers.selection
-        if layer.metadata.get("is_psf", True)
+        layer for layer in viewer.layers.selection if layer.metadata.get("is_psf", True)
     )
-
 
     psf_layer_one = next(gaussian_layers)
     psf_layer_two = next(gaussian_layers)
-    new_psf = np.multiply(
-        psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat)
-    )
+    new_psf = np.multiply(psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat))
 
     return viewer.add_image(
         new_psf,
@@ -179,10 +174,10 @@ def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
         metadata={"is_psf": True},
     )
 
+
 @magicgui(
     call_button="Convolve Image",
 )
-
 def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 
     psf_layer = next(
@@ -220,9 +215,9 @@ def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 @magicgui(
     call_button="Generate Space",
 )
-
-def generate_space(viewer: napari.Viewer, x_size = 100, y_size = 100, z_size = 20, dots: int = 50):
-
+def generate_space(
+    viewer: napari.Viewer, x_size=100, y_size=100, z_size=20, dots: int = 50
+):
 
     x = np.random.randint(0, x_size, size=(dots))
     y = np.random.randint(0, y_size, size=(dots))
@@ -235,13 +230,10 @@ def generate_space(viewer: napari.Viewer, x_size = 100, y_size = 100, z_size = 2
     viewer.add_image(M, name="Space")
 
 
-
 @magicgui(
     call_button="Generate Space",
 )
-
 def calculate_fwhm(viewer: napari.Viewer):
-
 
     psf_layer = next(
         layer

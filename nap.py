@@ -6,9 +6,10 @@ import napari
 import numpy as np
 import argparse
 import os
+
 if __name__ == "__main__":
 
-    #stephqnepnie
+    # stephqnepnie
     os.environ["NAPARI_ASYNC"] = "1"
     parser = argparse.ArgumentParser()
     args = parser.parse_args()

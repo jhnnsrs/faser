@@ -3,27 +3,29 @@ import numpy as np
 from pkg_resources import working_set  #
 from faser.generators.base import *
 
+
 def cart_to_polar(x, y) -> Tuple[np.ndarray, np.ndarray]:
     rho = np.sqrt(np.square(x) + np.square(y))
     # rho=rho/s.pupil_radius
     theta = np.arctan2(y, x)
     return rho, theta
 
-'''
+
+"""
 def pol_to_cart(rho, phi):
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return (x, y)
-'''
+"""
+
 
 def Amplitude(x, y, s: PSFConfig):
-    Amp=np.exp(
-             -(x**2 + y**2)/s.waist**2
-    )
+    Amp = np.exp(-(x**2 + y**2) / s.waist**2)
     return Amp
 
+
 def zernike(rho, phi, a: PSFConfig):
-    
+
     Z1 = 1
     Z2 = 2 * rho * np.cos(phi)  # Tip
     Z3 = 2 * rho * np.sin(phi)  # Tilt
@@ -50,23 +52,24 @@ def zernike(rho, phi, a: PSFConfig):
     )
     return zer
 
-def Fresnel_coeff(s: PSFConfig, ca,c2a,c2at,c3a):
-    
-    t1p=2*s.n1*ca/(s.n2*ca+s.n1*c2a)
-    t2p=2*s.n2*c2a/(s.n3*c2a+s.n2*c3a)
-    r1p=(s.n2*ca-s.n1*c2a)/(s.n2*ca+s.n1*c2a)
-    r2p=(s.n3*c2a-s.n2*c3a)/(s.n3*c2a+s.n2*c3a)
 
-    t1s=2*s.n1*ca/(s.n1*ca+s.n2*c2a)
-    t2s=2*s.n2*c2a/(s.n2*c2a+s.n3*c3a)
-    r1s=(s.n1*ca-s.n2*c2a)/(s.n1*ca+s.n2*c2a)
-    r2s=(s.n2*c2a-s.n3*c3a)/(s.n2*c2a+s.n3*c3a)
+def Fresnel_coeff(s: PSFConfig, ca, c2a, c2at, c3a):
 
-    beta=s.k0*s.n2*(s.thick*c2a-s.collar*c2at)
+    t1p = 2 * s.n1 * ca / (s.n2 * ca + s.n1 * c2a)
+    t2p = 2 * s.n2 * c2a / (s.n3 * c2a + s.n2 * c3a)
+    r1p = (s.n2 * ca - s.n1 * c2a) / (s.n2 * ca + s.n1 * c2a)
+    r2p = (s.n3 * c2a - s.n2 * c3a) / (s.n3 * c2a + s.n2 * c3a)
 
-    Tp=t2p*t1p*np.exp(1j*beta)/(1+r1p*r2p*np.exp(2*1j*beta))
-    Ts=t2s*t1s*np.exp(1j*beta)/(1+r1s*r2s*np.exp(2*1j*beta))
-   
+    t1s = 2 * s.n1 * ca / (s.n1 * ca + s.n2 * c2a)
+    t2s = 2 * s.n2 * c2a / (s.n2 * c2a + s.n3 * c3a)
+    r1s = (s.n1 * ca - s.n2 * c2a) / (s.n1 * ca + s.n2 * c2a)
+    r2s = (s.n2 * c2a - s.n3 * c3a) / (s.n2 * c2a + s.n3 * c3a)
+
+    beta = s.k0 * s.n2 * (s.thick * c2a - s.collar * c2at)
+
+    Tp = t2p * t1p * np.exp(1j * beta) / (1 + r1p * r2p * np.exp(2 * 1j * beta))
+    Ts = t2s * t1s * np.exp(1j * beta) / (1 + r1s * r2s * np.exp(2 * 1j * beta))
+
     return Tp, Ts
 
 
@@ -111,12 +114,12 @@ def phase_mask(
     elif s.mode == Mode.DONUT:  # donut
         mask = np.exp(1j * s.vc * phi)
     elif s.mode == Mode.BOTTLE:  # bottle
-        cutoff_radius=s.rc*s.r0
+        cutoff_radius = s.rc * s.r0
         if rho <= cutoff_radius:
             mask = np.exp(1j * s.rc * np.pi)
         else:
             mask = np.exp(1j * 0)
-    elif s.mode== Mode.DONUT_BOTTLE: # Donut & Bottle
+    elif s.mode == Mode.DONUT_BOTTLE:  # Donut & Bottle
         raise NotImplementedError("No display Donut and Bottle")
     else:
         raise NotImplementedError("Please use a specified Mode")
@@ -150,7 +153,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     phi = 0
     for slice in range(0, s.Ntheta):
         theta = slice * deltatheta
-        for q in range(0, s.Nphi-1):
+        for q in range(0, s.Nphi - 1):
             phi = q * deltaphi
 
             ci = np.cos(phi)
@@ -159,25 +162,27 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
             sa = np.sin(theta)
 
             # refracted angles
-            theta2=np.arcsin((s.n1/s.n2)*np.sin(theta))
-            c2a=np.cos(theta2)
-            theta3=np.arcsin((s.n2/s.n3)*np.sin(theta2))
-            c3a=np.cos(theta3)
-            s3a=np.sin(theta3)
+            theta2 = np.arcsin((s.n1 / s.n2) * np.sin(theta))
+            c2a = np.cos(theta2)
+            theta3 = np.arcsin((s.n2 / s.n3) * np.sin(theta2))
+            c3a = np.cos(theta3)
+            s3a = np.sin(theta3)
 
             # Cartesian coordinate on pupil
-            x_pup=s.WD*sa*ci
-            y_pup=s.WD*sa*si
+            x_pup = s.WD * sa * ci
+            y_pup = s.WD * sa * si
 
             # Tilt of the pupil function
-            x_pup_t=s.cg*x_pup-s.sg*s.WD
-            y_pup_t=y_pup
-            theta_t=np.arcsin(np.sqrt(x_pup_t**2+y_pup_t**2)/s.WD)    # Spherical (also = theta-gamma)
-            cat=np.cos(theta_t)
+            x_pup_t = s.cg * x_pup - s.sg * s.WD
+            y_pup_t = y_pup
+            theta_t = np.arcsin(
+                np.sqrt(x_pup_t**2 + y_pup_t**2) / s.WD
+            )  # Spherical (also = theta-gamma)
+            cat = np.cos(theta_t)
 
             # refracted angles
-            theta2_t=np.arcsin((s.n1/s.n2)*np.sin(theta_t))
-            c2at=np.cos(theta2_t)
+            theta2_t = np.arcsin((s.n1 / s.n2) * np.sin(theta_t))
+            c2at = np.cos(theta2_t)
             # theta3_t=np.asin((s.n2/s.n3)*np.sin(theta2_t));
             # c3at=np.cos(theta3_t);
 
@@ -186,7 +191,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
             # rho_amp, phi_amp = cart_to_polar(
             #    x_pup - s.r0 / s.Nx * s.ampl_offset(1),
             #    y_pup - s.r0 / s.Ny * s.ampl_offset(2),
-            #)
+            # )
             rho_mask, phi_mask = cart_to_polar(
                 x_pup_t - s.r0 / s.Nx * s.mask_offset_x,
                 y_pup_t - s.r0 / s.Ny * s.mask_offset_y,
@@ -213,7 +218,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
                 )
                 # Wavefront
                 W = np.exp(
-                    1j #*2*np.pi
+                    1j  # *2*np.pi
                     * zernike(
                         rho_ab / s.r0,
                         phi_ab,
@@ -221,59 +226,75 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
                     )
                 )
             else:
-                Amp=0
-                PM=1
-                W=0
-        
+                Amp = 0
+                PM = 1
+                W = 0
+
             # incident beam polarization cases
-            p0x=[np.cos(s.psi)*np.cos(s.eps)-1j*np.sin(s.psi)*np.sin(s.eps),ci,-si]
-            p0y=[np.sin(s.psi)*np.cos(s.eps)+1j*np.cos(s.psi)*np.sin(s.eps),si,ci]
-            p0z=0
+            p0x = [
+                np.cos(s.psi) * np.cos(s.eps) - 1j * np.sin(s.psi) * np.sin(s.eps),
+                ci,
+                -si,
+            ]
+            p0y = [
+                np.sin(s.psi) * np.cos(s.eps) + 1j * np.cos(s.psi) * np.sin(s.eps),
+                si,
+                ci,
+            ]
+            p0z = 0
 
             # Selected incident beam polarization
             P0 = [
-            [p0x[s.polarization - 1]],  # indexing minus one to get corresponding polarization
-            [p0y[s.polarization - 1]],  # indexing minus one to get corresponding polarization
-            [p0z],]  #
-
-
-            [Tp,Ts]=Fresnel_coeff(s,ca,c2a,c2at,c3a)
-
-            T=[
                 [
-                    Tp*c3a*ci**2+Ts*si**2,
-                    Tp*si*ci*c3a-Ts*ci*si,
-                    Tp*s3a*ci,
+                    p0x[s.polarization - 1]
+                ],  # indexing minus one to get corresponding polarization
+                [
+                    p0y[s.polarization - 1]
+                ],  # indexing minus one to get corresponding polarization
+                [p0z],
+            ]  #
+
+            [Tp, Ts] = Fresnel_coeff(s, ca, c2a, c2at, c3a)
+
+            T = [
+                [
+                    Tp * c3a * ci**2 + Ts * si**2,
+                    Tp * si * ci * c3a - Ts * ci * si,
+                    Tp * s3a * ci,
                 ],
                 [
-                    Tp*c3a*ci*si-Ts*si*ci,
-                    Tp*c3a*si**2+Ts*ci**2,
-                    Tp*s3a*si,
+                    Tp * c3a * ci * si - Ts * si * ci,
+                    Tp * c3a * si**2 + Ts * ci**2,
+                    Tp * s3a * si,
                 ],
                 [
-                    -Tp*ci*s3a,
-                    -Tp*s3a*si,
-                    Tp*c3a,
+                    -Tp * ci * s3a,
+                    -Tp * s3a * si,
+                    Tp * c3a,
                 ],
-            ] # Pola matrix 
+            ]  # Pola matrix
 
             # polarization in focal region
             P = np.matmul(T, P0)
-            
+
             # Apodization factor
             a = np.sqrt(cat)
 
             # numerical calculation of field distribution in focal region
-            propagation = np.exp(
-                1j * s.k0 * s.n1 * (X2 * ci * sa + Y2 * si * sa)
-                + 1j * s.k0 * s.n3 * c3a * Z2
-                ) * deltaphi * deltatheta
+            propagation = (
+                np.exp(
+                    1j * s.k0 * s.n1 * (X2 * ci * sa + Y2 * si * sa)
+                    + 1j * s.k0 * s.n3 * c3a * Z2
+                )
+                * deltaphi
+                * deltatheta
+            )
 
             # Aberration term from the coverslip
-            Psi_coverslip=s.n3*s.depth*c3a-s.n1*(s.thick+s.depth)*ca
-            Psi_collar=-s.n1*s.collar*cat   ### TO DO: ca?
-            Psi=Psi_coverslip-Psi_collar
-            Ab_wind=np.exp(1j*s.k0*Psi)
+            Psi_coverslip = s.n3 * s.depth * c3a - s.n1 * (s.thick + s.depth) * ca
+            Psi_collar = -s.n1 * s.collar * cat  ### TO DO: ca?
+            Psi = Psi_coverslip - Psi_collar
+            Ab_wind = np.exp(1j * s.k0 * Psi)
 
             factored = sa * a * Amp * PM * W * Ab_wind * propagation
 
@@ -285,7 +306,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
     Iy2 = np.multiply(np.conjugate(Ey2), Ey2)
     Iz2 = np.multiply(np.conjugate(Ez2), Ez2)
     I1 = Ix2 + Iy2 + Iz2
-    #I1 = np.real(I1)
+    # I1 = np.real(I1)
 
     I1 = I1 + np.abs(np.random.normal(0, s.detector_gaussian_noise, I1.shape))
 

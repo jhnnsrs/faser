@@ -16,22 +16,20 @@ z = StephanePSFGenerator(config)
 #%%
 h1 = x.generate()
 
+
 def gen(abs: Aberration):
     return StephanePSFGenerator(PSFGeneratorConfig(aberration=abs)).generate()
 
+
 def gen_don(abs: Aberration):
-    return StephanePSFGenerator(PSFGeneratorConfig(aberration=abs, mode=Mode.DONUT)).generate()
+    return StephanePSFGenerator(
+        PSFGeneratorConfig(aberration=abs, mode=Mode.DONUT)
+    ).generate()
 
 
 x = {
-    "Gaussian" : {
-        "Pure": gen(Aberration(a5=0)),
-        "t": gen(Aberration(a5=0.7))
-    },
-    "Donut" : {
-        "Pure": gen_don(Aberration(a5=0)),
-        "t": gen_don(Aberration(a5=0.7))
-    }
+    "Gaussian": {"Pure": gen(Aberration(a5=0)), "t": gen(Aberration(a5=0.7))},
+    "Donut": {"Pure": gen_don(Aberration(a5=0)), "t": gen_don(Aberration(a5=0.7))},
 }
 
 nrows = len(x.keys())
@@ -45,7 +43,7 @@ for i, row in enumerate(x.items()):
     for y, col in enumerate(value.items()):
         subkey, image = col
         mid_plane = image.shape[0] // 2
-        axes[i,y].imshow(image[mid_plane], cmap="hsv", interpolation="bilinear")
+        axes[i, y].imshow(image[mid_plane], cmap="hsv", interpolation="bilinear")
 
 
 plt.show()

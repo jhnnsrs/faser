@@ -7,7 +7,7 @@ from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 
 @register
 def generate_psf_arkitekt(
-    Nx=31, # discretization of image plane
+    Nx=31,  # discretization of image plane
     Ny=31,
     Nz=31,
     LfocalXY=2,  # observation scale X and Y
@@ -36,7 +36,7 @@ def generate_psf_arkitekt(
     psi=0,
     eps=45,
 ) -> RepresentationFragment:
-    """Generate a PSF 
+    """Generate a PSF
 
     Generates a PSF utilizing common parameters for the PSF generation.
     """
@@ -55,7 +55,6 @@ def generate_psf_arkitekt(
         a11=spherical,
     )
 
-
     config = PSFConfig(
         Nx=Nx,
         Ny=Ny,
@@ -73,12 +72,10 @@ def generate_psf_arkitekt(
         LfocalZ=LfocalZ * 1e-6,
         rescale=rescale,
         # wavelength=wavelength*1e-9,
-                # waist=waist*1e-3,
+        # waist=waist*1e-3,
         # ampl_offset=ampl_offset,
-                
         psi_degree=psi,
         eps_degree=eps,
-        
         # aberration_offset=aberration_offset,
         # vc=vc,
         # rc=rc,
@@ -100,8 +97,6 @@ def generate_psf_arkitekt(
 
     aberrationdf = from_df(json_normalize(config.dict()), name="Abberation (dataframe)")
 
-
     psf = generate_psf(config)
-    
 
     return from_xarray(psf, name="PSF (xarray)", table_origins=[aberrationdf])
