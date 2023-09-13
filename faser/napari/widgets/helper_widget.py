@@ -22,7 +22,7 @@ import dask
 import os
 from superqt.utils import thread_worker
 import tifffile
-
+from slugify import slugify
 from faser.napari.widgets.fields import generate_single_widgets_from_model
 
 
@@ -52,7 +52,7 @@ class ExportWorker(QtCore.QObject):
         self.export_dir = export_dir
 
     def export_layer_with_config_data_to_file(self, data, export_dir, layer_name, config):
-        export_file_dir = os.path.join(export_dir, layer_name)
+        export_file_dir = os.path.join(export_dir, slugify(layer_name))
         os.makedirs(export_file_dir, exist_ok=True)
         with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
             f.write(config.json())
