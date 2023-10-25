@@ -1,7 +1,7 @@
 import napari
 import numpy as np
 from magicgui import magic_factory, magicgui
-from faser.generators.base import PSFConfig, Mode, Polarization, WindowType
+from faser.generators.base import PSFConfig, mode, polarization, window
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 import numpy as np
 
@@ -26,7 +26,6 @@ viewer = None
     call_button="Generate",
     LfocalXY=focal_slider,
     LfocalZ=focal_slider,
-    # waist=beam_slider,
     piston=slider,
     tip=slider,
     tilt=slider,
@@ -69,31 +68,10 @@ def generate_psf_gui(
     add_detector_poisson_noise=False,
     rescale=True,
     # Phase profile
-    mode: Mode = Mode.GAUSSIAN,
-    # vc=1,
-    # rc=1,
-    # ring_radius=0.46,
-    # mask_offset=[0.0,0.0],
-    # p=0.5,
-    # Polarization
-    polarization: Polarization = Polarization.ELLIPTICAL,
+    Mode: mode = mode.GAUSSIAN,
+    Window: window = window.NO,
     psi=0,
     eps=45,
-    # aberration_offset=[0.0,0.0],
-    # NA=1.0,
-    # WD=2.8,
-    # n1=1.33,
-    # n2=1.52,
-    # n3=1.38,
-    # thick=170,
-    # depth=10,
-    # tilt_angle=1,
-    # wind: WindowType = WindowType.NO,
-    # t_wind=2.23,
-    # r_wind=1.5,
-    # wavelength=592,
-    # waist=50.0,
-    # ampl_offset= [0,0],
 ):
     config = PSFConfig(
         a1=piston,
@@ -112,8 +90,9 @@ def generate_psf_gui(
         Nz=Nz,
         Ntheta=Ntheta,
         Nphi=Nphi,
-        mode=mode,
-        polarization=polarization,
+        Mode=Mode,
+        Polarization=Polarization,
+        Window=Window,
         gaussian_beam_noise=gaussian_beam_noise,
         detector_gaussian_noise=detector_gaussian_noise,
         add_detector_poisson_noise=add_detector_poisson_noise,
@@ -121,28 +100,9 @@ def generate_psf_gui(
         LfocalY=LfocalXY * 1e-6,  # observation scale Y
         LfocalZ=LfocalZ * 1e-6,
         rescale=rescale,
-        # wavelength=wavelength*1e-9,
-        # waist=waist*1e-3,
-        # ampl_offset=ampl_offset,
         psi_degree=psi,
         eps_degree=eps,
-        # aberration_offset=aberration_offset,
-        # vc=vc,
-        # rc=rc,
-        # ring_radius=ring_radius,
-        # mask_offset=mask_offset,
-        # p=p,
-        # NA=NA,
-        # WD=WD*1.e-3,
-        # n1=n1,
-        # n2=n2,
-        # n3=n3,
-        # thick=thick*1e-6,
-        # depth=depth*1e-6,
         tilt_angle_degree=tilt_angle,
-        # wind=wind,
-        # t_wind=t_wind*1e-3,
-        # r_wind=r_wind*1e-3,
     )
 
     psf = generate_psf(config)

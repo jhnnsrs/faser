@@ -1,5 +1,0 @@
-function [A]=Amplitude_pup(rho,w)
-
-A=exp(-rho.^2/w.^2);
-
-end

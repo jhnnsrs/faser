@@ -73,7 +73,6 @@ class SampleTab(QtWidgets.QWidget):
         self.viewer = viewer
         self.main = main
 
-
         self.scroll = (
             QtWidgets.QScrollArea()
         )  # Scroll Area which contains the widgets, set as the centralWidget
@@ -104,12 +103,9 @@ class SampleTab(QtWidgets.QWidget):
         self.setLayout(self.mylayout)
 
 
-
-
 @dask.delayed
 def lazy_generate_psf(config: PSFConfig):
     return generate_psf(config)
-
 
 
 def generate_wavefront(config: PSFConfig):
@@ -122,17 +118,14 @@ def generate_wavefront(config: PSFConfig):
     return cartesian_mask
 
 
-
-
-
 class AbberationTab(SampleTab):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.show_button = QtWidgets.QPushButton("Show Wavefront")
         self.show_button.clicked.connect(self.show_wavefront)
-        self.wavefront_dialog = MatplotlibDialog("WaveFront", parent=self)
-
+        self.wavefront_dialog = MatplotlibDialog("Wavefront", parent=self)
+        
         self.mylayout.addWidget(self.show_button)
 
     def show_wavefront(self):
@@ -166,55 +159,57 @@ class BeamTab(SampleTab):
         self.phase_mask_dialog.show()
 
 simulation_set = [
-    "LfocalXMM",
-    "LfocalYMM",
-    "LfocalZMM",
+    "L_obs_XY",
+    "L_obs_Z",
     "Ntheta",
     "Nphi",
-    "threshold",
-    "it",
-    "Nx",
-    "Ny",
+    "Nxy",
     "Nz",
+    "Rescale",
 ]
 
 
 noise_set = [
-    "gaussian_beam_noise",
-    "detector_gaussian_noise",
-    "add_detector_poisson_noise",
+    "Gaussian_beam_noise",
+    "Detector_gaussian_noise",
+    "Add_noise",
 ]
 
 geometry_set = [
+    "NA",
+    "WD",
     "n1",
     "n2",
     "n3",
-    "collarMM",
-    "thickMM",
-    "depthMM",
-    "tilt_angle_degree",
-    "WDMM",
+    "Collar",
+    "Thickness",
+    "Depth",
+    "Tilt",
+    "Window",
+    "Wind_Radius",
+    "Wind_Depth",
 ]
 
 beam_set = [
-    "mode",
-    "polarization",
-    "wavelengthMM",
-    "waistMM",
-    "ampl_offset_x",
-    "ampl_offset_y",
-    "psi_degree",
-    "eps_degree",
-    "ring_radius",
-    "vc",
-    "rc",
-    "mask_offset_x",
-    "mask_offset_y",
+    "Mode",
+    "Polarization",
+    "Wavelength",
+    "Waist",
+    "Ampl_offset_x",
+    "Ampl_offset_y",
+    "Psi",
+    "Epsilon",
+    "Ring_Radius",
+    "VC",
+    "RC",
+    "Mask_offset_x",
+    "Mask_offset_y",
     "p",
 ]
 
 
 aberration_set = [
+    "a0",
     "a1",
     "a2",
     "a3",
@@ -224,11 +219,9 @@ aberration_set = [
     "a7",
     "a8",
     "a9",
-    "a10",
-    "a11",
-    "aberration",
-    "aberration_offset_x",
-    "aberration_offset_y",
+    "a12",
+    "Aberration_offset_x",
+    "Aberration_offset_y",
 ]
 
 
@@ -241,7 +234,7 @@ class MainWidget(QtWidgets.QWidget):
             self.viewer,
 
             main = self,
-            image="placeholder.png",
+            image="Figure 1.png",
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(simulation_set),
@@ -263,11 +256,20 @@ class MainWidget(QtWidgets.QWidget):
         )
         self.beam_tab = BeamTab(
             self.viewer,
-
             main = self,
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(beam_set),
+        )
+        self.noise_tab = SampleTab(
+
+            self.viewer,
+
+            main = self,
+            image="Figure 1.png",
+            callback=self.callback,
+            range_callback=self.range_callback,
+            filter_fields=build_key_filter(noise_set),
         )
 
         layout = QtWidgets.QGridLayout()
@@ -277,6 +279,7 @@ class MainWidget(QtWidgets.QWidget):
         tabwidget.addTab(self.geometry_tab, "Geometry")
         tabwidget.addTab(self.aberration_tab, "Abberation")
         tabwidget.addTab(self.beam_tab, "Beam")
+        tabwidget.addTab(self.noise_tab, "Noise")
         layout.addWidget(tabwidget, 0, 0)
 
         self.generate = QtWidgets.QPushButton("Generate")
@@ -374,7 +377,7 @@ class MainWidget(QtWidgets.QWidget):
         t = [
             da.from_delayed(
                 lazy_generate_psf(new_model),
-                (new_model.Nz, new_model.Nx, new_model.Ny),
+                (new_model.Nz, new_model.Nxy, new_model.Nxy),
                 dtype=np.float64,
             )
             for new_model in models
@@ -390,8 +393,8 @@ class MainWidget(QtWidgets.QWidget):
                 reshape_start
                 + [
                     self.active_base_model.Nz,
-                    self.active_base_model.Nx,
-                    self.active_base_model.Ny,
+                    self.active_base_model.Nxy,
+                    self.active_base_model.Nxy,
                 ],
                 merge_chunks=False,
             )

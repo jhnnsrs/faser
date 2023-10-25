@@ -20,31 +20,29 @@ class Step(BaseMetadata):
     x: int
 
 
-@dataclass(frozen=True, slots=True)
-class Slider(BaseMetadata):
-    """Gt(gt=x) implies that the value must be greater than x.
-
-    It can be used with any type that supports the ``>`` operator,
-    including numbers, dates and times, strings, sets, and so on.
-    """
-
-    step: int
-
-
-class Mode(str, Enum):
+class mode(str, Enum):
     GAUSSIAN = "GAUSSIAN"
     DONUT = "DONUT"
     BOTTLE = "BOTTLE"
-    DONUT_BOTTLE = "DONUT_BOTTLE"
+    DONUT_BOTTLE = "DONUT BOTTLE"
 
 
-class WindowType(str, Enum):
+class window(str, Enum):
+    NO = "NO"
     OLD = "OLD"
     NEW = "NEW"
+    CUSTOM= "CUSTOM"
+
+class rescale(str, Enum):
+    YES = "YES"
+    NO = "NO"
+
+class noise(str, Enum):
+    YES = "YES"
     NO = "NO"
 
 
-class Polarization(int, Enum):
+class polarization(int, Enum):
     ELLIPTICAL = 1
     RADIAL = 2
     AZIMUTHAL = 3
@@ -69,177 +67,198 @@ class AberrationFloat(float):
         return v
 
 
-# class EffectivePSFGeneratorConfig(BaseModel):
-#    I_sat: float = 0.1  # Saturation factor of depletion
-
-
-# class WindowConfig(BaseModel):
-#    wind: WindowType = WindowType.NEW
-#    r_window = 2.3e-3  # radius of the cranial window (in m)
-#    t_window = 2.23e-3  # thickness of the cranial window (in m)
-
-
-# class CoverslipConfig(BaseModel):
-# Coverslip Parameters
-#   refractive_index_immersion = 1.33 # refractive index of the immersion medium
-#   refractive_index_coverslip = 1.52  # refractive index of the coverslip
-#   refractive_index_sample = 1.38  # refractive index of immersion medium (BRIAN)
-
-#    imaging_depth = 10e-6  # from coverslip down
-#    thickness_coverslip = 100e-6  # thickness of coverslip in meter
-
-
 class PSFConfig(BaseModel):
-    mode: Mode = Mode.GAUSSIAN
-    polarization: Polarization = Polarization.ELLIPTICAL
+    Mode: mode = mode.GAUSSIAN
+    Polarization: polarization = polarization.ELLIPTICAL
 
     # Geometry parameters
     NA: Annotated[float, Step(0.1)] = Field(
-        default=1, description="LABEL: numerical aperture of objective lens", gt=0.4, lt=1.4
+        default=1, description="Numerical Aperture of Objective Lens", gt=0.05, lt=1.6
     )
-    WDMM: float = 2800  # working distance of the objective in meter
-    n1: float = 1.33  # refractive index of immersion medium
-    n2: float = 1.52  # refractive index of the glass coverslip
-    n3: float = 1.38  # refractive index of the Sample
-    thickMM: float = 170  # Thickness of the coverslip
-    collarMM: float = Field(
-        default=170, description="Correction Collar: The value will", gt=0, lt=400
+    WD: float = Field(default=2800, description="Working Distance of the objective lens (in µm)")
+    n1: float =  Field(default=1.33, description="Refractive index of the immersion medium")
+    n2: float = Field(default=1.52, description="Refractive index of the coverslip")
+    n3: float = Field(default=1.38, description="Refractive index of the sample")
+    Thickness: float = Field(default=170, description="Thickness of the coverslip (in µm)")   
+    Collar: Annotated[float, Step(200)] = Field(
+        default=170, 
+        description="Correction collar setting to compensate coverslip thickness", 
+        gt=0, lt=300
     )
-    depthMM: float = Field(
-        default=10, description="Tilt of the coverslip in angle", gt=0, lt=150
+    Depth: float = Field(
+        default=0, description="Imaging depth in the sample (in µm)", gt=0, lt=150
     )
-
+    
     # Beam parameters
-    wavelengthMM: float = 0.592  # wavelength of light in meter
-    waistMM: float = Field(
-        default=8000, description="Tilt of the coverslip in angle", gt=0, lt=20000
+    Wavelength: float = Field(default=0.592, description="Wavelength of light (in µm)")
+    Waist: float = Field(
+        default=8000,
+        description="Diameter of the input beam on the objective pupil (in µm)",
+        gt=0, lt=20000
+    )  
+    Ampl_offset_x: float = Field(
+        default=0,
+        description="X offset of the amplitude profile in regard to pupil center"
     )
-    ampl_offset_x: float = (
-        0  # offset of the amplitude profile in regard to pupil center
+    Ampl_offset_y: float = Field(
+        default=0,
+        description="Y offset of the amplitude profile in regard to pupil center"
     )
-    ampl_offset_y: float = 0
 
     # Polarization parameters
-    psi_degree: float = Field(
-        default=0, description="Tilt of the coverslip in angle", gt=0, lt=180
+    Psi: float = Field(
+        default=0,
+        description="Direction of the polarization (in °)",
+        gt=0, lt=180
     )
-    eps_degree: float = Field(
-        default=45, description="Tilt of the coverslip in angle", gt=-45, lt=45
+    Epsilon: float = Field(
+        default=45,
+        description="Ellipticity of the polarization (in °)",
+        gt=-45, lt=45
     )
-    tilt_angle_degree: float = Field(
-        default=0, description="Tilt of the coverslip in angle", gt=-10, lt=10
+    Tilt: float = Field(
+        default=0,
+        description="Tilt angle of the coverslip (in °)",
+        gt=-10, lt=10
     )
+    Window: window = window.NO
+
+    Wind_Radius: float = Field(default=2.3,
+                                 description="Diameter of the cranial window (in mm)"
+                                 )
+    Wind_Depth: float = Field(default=2.23,
+                               description="Depth of the cranial window (in mm)"
+                               )
 
     # STED parameters
-    I_sat: float = 0.1  # Saturation factor of depletion
-    ring_radius: float = 0.46  # radius of the ring phase mask (on unit pupil)
-    vc: float = 1.0  # vortex charge (should be integer to produce donut) # TODO: topological charge
-    rc: float = 1.0  # ring charge (should be integer to produce donut)
-    mask_offset_x: float = 0  # offset of the phase mask in regard of the pupil center
-    mask_offset_y: float = 0
+    VC: float = Field(
+        default=1.0,
+        description="Vortex charge (should be integer to produce donut)", 
+        gt=-6, lt=6
+    )
+    RC: float = Field(
+        default=1.0, 
+        description="Ring charge (should be odd to produce bottle)",
+        gt=-5, lt=5
+    )
+    Ring_Radius: float = Field(
+        default=0.707,
+        description="Radius of the ring phase mask (on unit pupil)",
+        gt=0, lt=1
+    )
+    Mask_offset_x: float = Field(
+        default=0,
+        description="X offset of the phase mask in regard to pupil center"
+    )
+    Mask_offset_y: float = Field(
+        default=0,
+        description="Y offset of the phase mask in regard to pupil center"
+    )
     p: float = Field(
-        default=0.5, description="Tilt of the coverslip in angle", gt=0, lt=1
+        default=0.5,
+        description="Ratio between Donut (p) and Bottle (1-p) profile",
+        gt=0, lt=1
     )
 
     # Aberration
-    a1: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a2: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a3: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a4: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a5: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a6: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a7: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a8: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a9: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a10: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    a11: AberrationFloat = Field(default=0, description="piston", gt=-1, lt=1)
-    aberration_offset_x: float = (
-        0  # offset of the aberration in regard of the pupil center
+    a0: AberrationFloat = Field(default=0, description="Piston", gt=-1, lt=1)
+    a1: AberrationFloat = Field(default=0, description="Vertical Tilt", gt=-1, lt=1)
+    a2: AberrationFloat = Field(default=0, description="Horizontal Tilt", gt=-1, lt=1)
+    a3: AberrationFloat = Field(default=0, description="Oblique Astigmatism", gt=-1, lt=1)
+    a4: AberrationFloat = Field(default=0, description="Defocus", gt=-1, lt=1)
+    a5: AberrationFloat = Field(default=0, description="Vertical Astigmatism", gt=-1, lt=1)  
+    a6: AberrationFloat = Field(default=0, description="Vertical Trefoil", gt=-1, lt=1)
+    a7: AberrationFloat = Field(default=0, description="Vertical Coma", gt=-1, lt=1)
+    a8: AberrationFloat = Field(default=0, description="Horizontal Coma", gt=-1, lt=1)
+    a9: AberrationFloat = Field(default=0, description="Oblique Trefoil", gt=-1, lt=1)    
+    a12: AberrationFloat = Field(default=0, description="Primary spherical", gt=-1, lt=1)
+    Aberration_offset_x: float = Field(
+        default=0,
+        description="X offset of the aberration function in regard to pupil center"
     )
-    aberration_offset_y: float = 0
+    Aberration_offset_y: float = Field(
+        default=0,
+        description="Y offset of the aberration function in regard to pupil center"
+    )
 
     # sampling parameters
-    LfocalXMM: float = 1.5  # observation scale X (in m)
-    LfocalYMM: float = 1.5  # observation scale Y (in m)
-    LfocalZMM: float = 2  # observation scale Z (in m)
-    Nx: int = 31  # discretization of image plane - better be odd number
-    Ny: int = 31
-    Nz: int = 31
-    Ntheta: int = 31  # integration step
-    Nphi: int = 31
+    L_obs_XY: float = Field(
+        default=2, description="Observation scale in XY (in µm)"
+    )
+    L_obs_Z: float = Field(
+        default=2, description="Observation scale in Z (in µm)"
+    )
+    Nxy: int = Field(
+        default=31, description="Discretization of image plane - better be odd number for perfect 0"
+    )
+    Nz: int = Field(
+        default=31, description="Discretization of Z axis - better be odd number for perfect 0"
+    )
+    Ntheta: int = Field(
+        default=31, description="Integration sted of the focalization angle"
+    )
+    Nphi: int = Field(
+        default=31, description="Integration sted of the aximutal angle on the pupil"
+    )
 
     # Noise Parameters
-    gaussian_beam_noise: float = 0.0
-    detector_gaussian_noise: float = 0.0
+    Add_noise: noise = noise.YES    # Add noise to the PSF
 
-    add_detector_poisson_noise: bool = False  # standard deviation of the noise
+    Gaussian_beam_noise: Annotated[float, Step(0.1)] = Field(
+        default=0.0, description="Gaussian_beam noise", gt=0, lt=1
+    )
+    Detector_gaussian_noise: Annotated[float, Step(0.1)] = Field(
+        default=0.0, description="Gaussian_beam noise", gt=0, lt=1
+    )
+    # Add_detector_poisson_noise: bool = False  # standard deviation of the noise
 
     # Normalization
-    rescale: bool = True  # rescale the PSF to have a maximum of 1
+    Rescale: rescale = rescale.YES  # rescale the PSF to have a maximum of 1
 
     @property
-    def WD(self):
-        return self.WDMM / 1000000
+    def t_wind(self):
+        if self.Window == window.CUSTOM:
+            return self.Wind_Depth*1e3
+        else:
+            return 2.23e3
 
     @property
-    def wavelength(self):
-        return self.wavelengthMM / 1000000
+    def r_wind(self):   # No cranial window
+        if self.Window == window.NO:
+            return 100*self.t_wind
+        elif self.Window == window.OLD:  # Old cylindrical cranial window
+            return 1.5e3
+        elif self.Window == window.NEW:  # New conical cranial window
+            return 2.3e3
+        elif self.Window == window.CUSTOM:
+            return self.Wind_Radius*1e3
+        else:
+            raise NotImplementedError("Please use a specified window type")
 
     @property
-    def waist(self):
-        return self.waistMM / 1000000
+    def k0(self):   # Wavevector (in µm^-1)
+        return 2 * np.pi / self.Wavelength
 
     @property
-    def collar(self):
-        return self.collarMM / 1000000
+    def alpha(self):    # maximum focusing angle of the objective (in rad)
+        return np.arcsin(self.NA / self.n1)
 
     @property
-    def thick(self):
-        return self.thickMM / 1000000
-
-    @property
-    def depth(self):
-        return self.depthMM / 1000000
-
-    @property
-    def LfocalX(self):
-        return self.LfocalXMM / 1000000
-
-    @property
-    def LfocalZ(self):
-        return self.LfocalZMM / 1000000
-
-    @property
-    def LfocalY(self):
-        return self.LfocalYMM / 1000000
-
-
-    @property
-    def k0(self):
-        return 2 * np.pi / self.wavelength
-
-    @property
-    def alpha(self):
-        return np.arcsin(
-            self.NA / self.n1
-        )  # maximum focusing angle of the objective (in rad)
-
-    @property
-    def r0(self):
-        return self.WD * np.sin(self.alpha)  # radius of the pupil (in m)
+    def r0(self):   # radius of the pupil (in µm)
+        return self.WD * np.sin(self.alpha)  
 
     # convert angle in red
     @property
-    def gamma(self):
-        return self.tilt_angle_degree * np.pi / 180  # tilt angle (in rad)
+    def gamma(self):    # tilt angle (in rad)
+        return self.Tilt * np.pi / 180  
 
     @property
-    def psi(self):
-        return self.psi_degree * np.pi / 180  # polar direction
+    def psi(self):  # polar direction (in rad)
+        return self.Psi * np.pi / 180  
 
     @property
-    def eps(self):
-        return self.eps_degree * np.pi / 180  # ellipticity
+    def eps(self):  # ellipticity (in rad)
+        return self.Epsilon * np.pi / 180  
 
     @property
     def sg(self):
@@ -248,28 +267,45 @@ class PSFConfig(BaseModel):
     @property
     def cg(self):
         return np.cos(self.gamma)
+    
+    @property
+    def alpha_eff(self):    # effective focalization angle due to the cranial window (in rad)
+        return min(np.arctan(self.r_wind/self.t_wind),self.alpha) 
 
     @property
-    def alpha_int(self):
-        return self.alpha + abs(self.gamma)  # Integration range (in rad)
+    def NA_eff(self):    # Effective NA in presence of the cranial window
+        return min(self.n1*np.sin(self.alpha_eff),self.NA)
 
     @property
-    def r0_int(self):
-        return self.WD * np.sin(self.alpha_int)  # integration radius on pupil (in m)
+    def r0_eff(self):    # Effective pupil radius (in µm)
+        return self.WD*np.sin(self.alpha_eff)
 
     @property
-    def alpha2(self):
-        return np.arcsin((self.n1 / self.n2) * np.sin(self.alpha))
+    def alpha_int(self):    # Integration range (in rad)
+        return self.alpha_eff + abs(self.gamma)
 
     @property
-    def alpha3(self):
-        return np.arcsin((self.n2 / self.n3) * np.sin(self.alpha2))
+    def r0_int(self):    # integration radius on pupil (in µm)
+        return self.WD * np.sin(self.alpha_int)
+    
+    @property
+    def alpha2_eff(self):
+        return np.arcsin((self.n1 / self.n2) * np.sin(self.alpha_eff))
 
     @property
-    def Dfoc(self):
-        return 0.053 * self.depth + 0.173 * (
-            self.thick - self.collar
-        )  # No aberration correction
+    def alpha3_eff(self):
+        return np.arcsin((self.n2 / self.n3) * np.sin(self.alpha2_eff))
+
+    @property
+    def Dfoc(self):  # Corrected focus position
+        # return 0.0564 * self.Depth + 0.1692 * (self.Thickness - self.Collar)  # No aberration correction
+        return 1/np.tan(self.alpha3_eff) \
+                * (self.Depth \
+                * (np.tan(self.alpha_eff)-np.tan(self.alpha3_eff)) \
+                + (self.Thickness - self.Collar) \
+                *(np.tan(self.alpha_eff)-np.tan(self.alpha2_eff))
+                )
+                
 
     @property
     def deltatheta(self):
@@ -277,8 +313,8 @@ class PSFConfig(BaseModel):
 
     @property
     def deltaphi(self):
-        return 2 * np.pi / self.Nphi
-
+        return 2 * np.pi / self.Nphi      
+   
     @root_validator
     def validate_NA(cls, values):
         NA = values["NA"]
@@ -294,6 +330,5 @@ class PSFConfig(BaseModel):
     class Config:
         validate_assignment = True
         extra = "forbid"
-
 
 PSFGenerator = Callable[[PSFConfig], np.ndarray]

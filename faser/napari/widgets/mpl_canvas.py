@@ -18,8 +18,6 @@ class MplCanvas(FigureCanvasQTAgg):
         super(MplCanvas, self).__init__(fig)
 
 
-
-
 class MatplotlibDialog(QtWidgets.QDialog):
 
     def __init__(self, title, *args, **kwargs) -> None:

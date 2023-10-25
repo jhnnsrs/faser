@@ -128,7 +128,6 @@ class ExportTab(HelperTab):
                 self.show.setText("Export PSF" if len(layers) == 1 else "Export PSFs")
 
 
-
         print(self.viewer.layers.selection.active)
 
     def export_layer_with_config_data_to_file(data, export_dir, layer_name, config):
@@ -228,7 +227,7 @@ class SampleTab(HelperTab):
         
 
 class EffectiveModel(pydantic.BaseModel):
-    sat: float = pydantic.Field(default=0.1, lt=1, gt=0)
+    Isat: float = pydantic.Field(default=0.1, lt=1, gt=0)
     
 
 class EffectiveTab(HelperTab):
@@ -271,13 +270,13 @@ class EffectiveTab(HelperTab):
             self.effective_model.__setattr__(name, value)
 
     def make_effective_psf(self):
-        I_sat = self.effective_model.sat
+        I_sat = self.effective_model.Isat
         gaussian_layers = (
             layer for layer in self.viewer.layers.selection if layer.metadata.get("is_psf", True)
         )
 
-        psf_layer_one = next(gaussian_layers)
-        psf_layer_two = next(gaussian_layers)
+        psf_layer_one = next(gaussian_layers)   # Excitation PSF
+        psf_layer_two = next(gaussian_layers)   # Depletion PSF
         new_psf = np.multiply(psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat))
 
         return self.viewer.add_image(
@@ -395,8 +394,6 @@ class ConvolveTab(HelperTab):
             else:
                 self.show.setEnabled(True)
                 self.show.setText("Convolve Image")
-
-
 
 
 
