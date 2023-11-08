@@ -21,7 +21,7 @@ import dask.array as da
 import dask
 import os
 from .fields import generate_single_widgets_from_model, build_key_filter
-from .mpl_canvas import MatplotlibDialog
+from .mpl_canvas import MatplotlibDialog, WavefrontDialog, BeamDialog, PhaseMaskDialog
 
 class ScrollableWidget(QtWidgets.QWidget):
     def __init__(
@@ -124,7 +124,7 @@ class AbberationTab(SampleTab):
 
         self.show_button = QtWidgets.QPushButton("Show Wavefront")
         self.show_button.clicked.connect(self.show_wavefront)
-        self.wavefront_dialog = MatplotlibDialog("Wavefront", parent=self)
+        self.wavefront_dialog = WavefrontDialog("Wavefront", parent=self)
         
         self.mylayout.addWidget(self.show_button)
 
@@ -144,8 +144,8 @@ class BeamTab(SampleTab):
         self.showp_button = QtWidgets.QPushButton("Show Phase Mask")
         self.showp_button.clicked.connect(self.show_phase_mask)
 
-        self.intensity_dialog = MatplotlibDialog("Intensity", parent=self)
-        self.phase_mask_dialog = MatplotlibDialog("Phase Mask", parent=self)
+        self.intensity_dialog = BeamDialog("Intensity", parent=self)
+        self.phase_mask_dialog = PhaseMaskDialog("Phase Mask", parent=self)
 
         self.mylayout.addWidget(self.show_button)
         self.mylayout.addWidget(self.showp_button)
@@ -166,13 +166,7 @@ simulation_set = [
     "Nxy",
     "Nz",
     "Rescale",
-]
-
-
-noise_set = [
-    "Gaussian_beam_noise",
-    "Detector_gaussian_noise",
-    "Add_noise",
+    "add_detector_poisson_noise"
 ]
 
 geometry_set = [
@@ -261,39 +255,54 @@ class MainWidget(QtWidgets.QWidget):
             range_callback=self.range_callback,
             filter_fields=build_key_filter(beam_set),
         )
-        self.noise_tab = SampleTab(
 
-            self.viewer,
-
-            main = self,
-            image="Figure 1.png",
-            callback=self.callback,
-            range_callback=self.range_callback,
-            filter_fields=build_key_filter(noise_set),
-        )
-
-        layout = QtWidgets.QGridLayout()
+        layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
         tabwidget = QtWidgets.QTabWidget()
         tabwidget.addTab(self.simulation_tab, "Simulation")
         tabwidget.addTab(self.geometry_tab, "Geometry")
         tabwidget.addTab(self.aberration_tab, "Abberation")
         tabwidget.addTab(self.beam_tab, "Beam")
-        tabwidget.addTab(self.noise_tab, "Noise")
-        layout.addWidget(tabwidget, 0, 0)
+
+
 
         self.generate = QtWidgets.QPushButton("Generate")
 
         self.generate.clicked.connect(self.generate_psf)
+        self.generate.setMinimumHeight(30)
+        self.generate.setMaximumHeight(30)
 
-        self.loadb = QtWidgets.QPushButton("Load")
+        load_icon = QtGui.QIcon.fromTheme("document-open")
+        self.loadb = QtWidgets.QPushButton()
+        self.loadb.setIcon(load_icon)
         self.loadb.clicked.connect(self.load_model)
+        self.loadb.setMinimumWidth(30)
+        self.loadb.setMaximumWidth(30)
+        self.loadb.setMinimumHeight(30)
+        self.loadb.setMaximumHeight(30)
 
-        self.saveb = QtWidgets.QPushButton("Save")
+
+        save_icon = QtGui.QIcon.fromTheme("document-save")
+        self.saveb = QtWidgets.QPushButton()
+        self.saveb.setIcon(save_icon)
         self.saveb.clicked.connect(self.save_model)
-        layout.addWidget(self.generate, 2, 0)
-        layout.addWidget(self.saveb, 3, 0)
-        layout.addWidget(self.loadb, 4, 0)
+        self.saveb.setMinimumWidth(30)
+        self.saveb.setMaximumWidth(30)
+        self.saveb.setMinimumHeight(30)
+        self.saveb.setMaximumHeight(30)
+
+       
+
+        hlayout = QtWidgets.QHBoxLayout()
+        hlayout.addWidget(self.generate)
+        hlayout.addWidget(self.loadb)
+        hlayout.addWidget(self.saveb)
+       
+        layout.addWidget(tabwidget)
+
+
+
+        layout.addLayout(hlayout)
         self.active_base_model = PSFConfig()
 
         self.active_batchers = {}
@@ -354,7 +363,7 @@ class MainWidget(QtWidgets.QWidget):
             self, "Open File", "", "Config Files (*.json)"
         )
         if name:
-            file = open(name[0], "r")
+            file = open(name, "r")
             text = file.read()
             self.active_base_model = PSFConfig.parse_raw(text)
             self.reinit_ui()
@@ -408,6 +417,8 @@ class MainWidget(QtWidgets.QWidget):
 
     def generate_psf(self):
 
+        self.generate.setText("Generating...")
+
         if len(self.active_batchers) > 0:
             self.start_map()
 
@@ -421,3 +432,4 @@ class MainWidget(QtWidgets.QWidget):
                 name=f"PSF ",
                 metadata={"is_psf": True, "config": config, "is_batch": False},
             )
+            self.generate.setText("Generate")

@@ -26,6 +26,11 @@ from faser.generators.base import AberrationFloat, PSFConfig
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 from pydantic import BaseModel
 
+
+batch_png = QtGui.QPixmap(get_asset_file("batch.png"))
+single_png = QtGui.QPixmap(get_asset_file("single.png"))
+
+
 class FormField(QtWidgets.QWidget):
     on_child_value_changed = QtCore.pyqtSignal(str, object)
     on_child_range_value_changed = QtCore.pyqtSignal(str, object)
@@ -58,10 +63,12 @@ class FormField(QtWidgets.QWidget):
     def on_change_mode(self):
 
         if self.mode == "single":
+            self.toggle_button.setIcon(QtGui.QIcon(batch_png))
 
             self.replace_widget(self.child, self.range_child)
 
         elif self.mode == "range":
+            self.toggle_button.setIcon(QtGui.QIcon(single_png))
             self.on_child_range_changed(None)
             self.replace_widget(self.range_child, self.child)
 
@@ -81,7 +88,8 @@ class FormField(QtWidgets.QWidget):
         layout.addStretch()
 
         if self.toggable:
-            self.toggle_button = QtWidgets.QPushButton("Change Mode")
+            self.toggle_button = QtWidgets.QPushButton()
+            self.toggle_button.setIcon(QtGui.QIcon(single_png))
             self.toggle_button.clicked.connect(self.on_change_mode)
             layout.addWidget(self.toggle_button)
 

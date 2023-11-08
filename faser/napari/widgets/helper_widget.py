@@ -248,12 +248,22 @@ class EffectiveTab(HelperTab):
             widget.init_ui()
             self.mylayout.addWidget(widget)
 
+        self.label = QtWidgets.QLabel("Make Effective PSF")
         self.show = QtWidgets.QPushButton("Select exactly 2 PSFs")
         self.show.setEnabled(False)
         self.show.clicked.connect(self.make_effective_psf)
 
-        self.mylayout.addWidget(self.show)
+        self.show_alternate = QtWidgets.QPushButton("Select exactly 2 PSFs")
+        self.show_alternate.setEnabled(False)
+        self.show_alternate.clicked.connect(self.make_effective_psf_alternate)
 
+        hlayout = QtWidgets.QHBoxLayout()
+        hlayout.addWidget(self.show)
+        hlayout.addWidget(self.show_alternate)
+
+        self.mylayout.addStretch()
+        self.mylayout.addWidget(self.label)
+        self.mylayout.addLayout(hlayout)
 
         self.effective_model = EffectiveModel()
 
@@ -271,12 +281,14 @@ class EffectiveTab(HelperTab):
 
     def make_effective_psf(self):
         I_sat = self.effective_model.Isat
-        gaussian_layers = (
+        psf_layers = list(
             layer for layer in self.viewer.layers.selection if layer.metadata.get("is_psf", True)
         )
 
-        psf_layer_one = next(gaussian_layers)   # Excitation PSF
-        psf_layer_two = next(gaussian_layers)   # Depletion PSF
+        assert len(psf_layers) == 2, "Select exactly 2 PSFs"
+
+        psf_layer_one = psf_layers[0]   # Excitation PSF
+        psf_layer_two = psf_layers[1]  # Depletion PSF
         new_psf = np.multiply(psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat))
 
         return self.viewer.add_image(
@@ -284,6 +296,27 @@ class EffectiveTab(HelperTab):
             name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
             metadata={"is_psf": True},
         )
+    
+    def make_effective_psf_alternate(self):
+        I_sat = self.effective_model.Isat
+        psf_layers = list(
+            layer for layer in self.viewer.layers.selection if layer.metadata.get("is_psf", True)
+        )
+
+        assert len(psf_layers) == 2, "Select exactly 2 PSFs"
+
+        psf_layer_one = psf_layers[1]   # Excitation PSF
+        psf_layer_two = psf_layers[0]  # Depletion PSF
+        new_psf = np.multiply(psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat))
+
+        return self.viewer.add_image(
+            new_psf,
+            name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
+            metadata={"is_psf": True},
+        )
+    
+
+
 
 
     def update_selection(self, event):
@@ -291,21 +324,70 @@ class EffectiveTab(HelperTab):
 
         if not selection:
             self.show.setEnabled(False)
-            self.show.setText("Select exactly 2 PSFs")
+            self.show.setText("Select 2 PSFs")
+            self.show_alternate.setEnabled(False)
+            self.show_alternate.setText("Select 2 PSFs")
 
-        else:
-            layers = [layer for layer in selection if layer.metadata.get("is_psf", False)]
-            if len(layers) != 2:
-                self.show.setEnabled(False)
-                self.show.setText("Select exactly 2 PSFs")
-            
-            else:
-                self.show.setEnabled(True)
-                self.show.setText("Create Effective PSF")
+        psf_layers = list(
+            layer for layer in self.viewer.layers.selection if layer.metadata.get("is_psf", True)
+        )
+
+        if len(psf_layers) != 2:
+            self.show.setEnabled(False)
+            self.show.setText("Select 2 PSFs")
+            self.show_alternate.setEnabled(False)
+            self.show_alternate.setText("Select 2 PSFs")
+            return
+
+        layer_one = psf_layers[0] 
+        layer_two = psf_layers[1] 
+
+        self.show.setText(f"{layer_one.name} > {layer_two.name}")
+        self.show_alternate.setText(f"{layer_two.name} > {layer_one.name}")
+        self.show.setEnabled(True)
+        self.show_alternate.setEnabled(True)
+
 
 
 class ConvolveModel(pydantic.BaseModel):
     pass
+
+
+
+# Step 1: Create a worker class
+class ConvolveWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal(object)
+    progress = QtCore.pyqtSignal(int)
+
+
+    def __init__(self, image_data, psf_data):
+        super().__init__()
+        self.image_data = image_data
+        self.psf_data = psf_data
+
+    def export_layer_with_config_data_to_file(self, data, export_dir, layer_name, config):
+        export_file_dir = os.path.join(export_dir, slugify(layer_name))
+        os.makedirs(export_file_dir, exist_ok=True)
+        with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
+            f.write(config.json())
+
+        tifffile.imsave(os.path.join(export_file_dir, "psf.tif"), data)
+        print("Exported")
+
+
+    def run(self):
+        """Long-running task."""
+        if self.image_data.ndim == 2:
+            psf_data = self.psf_data[self.psf_data.shape[0] // 2, :, :]
+
+            con = ndimage.convolve(
+                self.image_data, psf_data, mode="constant", cval=0.0, origin=0
+            )
+
+
+        con = ndimage.convolve(self.image_data, self.psf_data, mode="constant", cval=0.0, origin=0)
+
+        self.finished.emit(con)
     
 
 class ConvolveTab(HelperTab):
@@ -347,6 +429,17 @@ class ConvolveTab(HelperTab):
         else:
             self.effective_model.__setattr__(name, value)
 
+    def on_worker_done(self, con: np.array):
+        self.show.setText("Select image and PSF")
+        return self.viewer.add_image(
+            con.squeeze(),
+            name=f"Convoled Image",
+        )
+    
+    def on_worker_progress(self, value):
+        print(value)
+
+
     def make_effective_psf(self):
         print("Making effective PSF")
         psf_layer = next(
@@ -363,20 +456,20 @@ class ConvolveTab(HelperTab):
         image_data = image_layer.data
         psf_data = psf_layer.data
 
-        if image_data.ndim == 2:
-            psf_data = psf_data[psf_data.shape[0] // 2, :, :]
+        self.show.setText("Convolviing...")
+        
 
-            con = ndimage.convolve(
-                image_data, psf_data, mode="constant", cval=0.0, origin=0
-            )
-
-
-        con = ndimage.convolve(image_data, psf_data, mode="constant", cval=0.0, origin=0)
-    
-        return self.viewer.add_image(
-            con.squeeze(),
-            name=f"Convoled {image_layer.name} with {psf_layer.name}",
-        )
+        self.thread = QtCore.QThread()
+        self.worker = ConvolveWorker(image_data, psf_data)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_worker_done)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.progress.connect(self.on_worker_progress)
+        self.thread.start()
+        
 
     def update_selection(self, event):
         selection = self.viewer.layers.selection

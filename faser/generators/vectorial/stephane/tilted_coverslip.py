@@ -68,7 +68,7 @@ def Fresnel_coeff(s: PSFConfig, ca, c2a, c2at, c3a):
     return Tp, Ts
 
 
-"""
+
 def poisson_noise(image, seed=None):
 
     #Add Poisson noise to an image.
@@ -97,7 +97,7 @@ def poisson_noise(image, seed=None):
         out = out * (old_max + 1.0) - 1.0
 
     return out
-"""
+
 
 
 def generate_intensity_profile(s: PSFConfig):
@@ -193,6 +193,14 @@ def phase_mask_array(
         cutoff_radius = s.Ring_Radius * s.r0
         mask = s.RC * np.pi * np.ones(rho.shape)
         mask[rho > cutoff_radius] = 0
+    elif s.Mode == mode.LOADED: 
+
+        print(s.loaded_phase_mask)
+        raise NotImplementedError("Needs to be implemented")
+        # interpolate value from
+
+
+
     elif s.Mode == mode.DONUT_BOTTLE:  # Donut & Bottle
         raise NotImplementedError("No display Donut and Bottle")
     else:

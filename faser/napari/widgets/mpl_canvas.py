@@ -2,20 +2,20 @@ import sys
 import typing
 from PyQt5.QtWidgets import QWidget
 import matplotlib
-
+import numpy as np
 matplotlib.use("Qt5Agg")
 
 from PyQt5 import QtCore, QtWidgets
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-
+from matplotlib.cm import coolwarm, viridis
 
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
+        super(MplCanvas, self).__init__(self.fig)
 
 
 class MatplotlibDialog(QtWidgets.QDialog):
@@ -43,15 +43,65 @@ class MatplotlibDialog(QtWidgets.QDialog):
         self.canvas.axes.set_title(new_title)
         self.canvas.draw()
 
-
     def show_another(self) -> None:
-        self.another = MatplotlibDialog(parent=self, title="Copy of " + self.title)
+        self.another = self.__class__(parent=self, title="Copy of " + self.title)
         self.another.update(self.data, "Copy of " + self.title)
         self.another.show()
 
 
 
 
+
+class WavefrontDialog(MatplotlibDialog):
+
+    def __init__(self, title, *args, **kwargs) -> None:
+        super().__init__(title, *args, **kwargs)
+        self.colorbar = None
+
+
+    def update(self, wavefront, new_title):
+        if self.colorbar is not None:
+            self.colorbar.remove()
+        self.canvas.axes.set_title(new_title)
+        self.data = wavefront
+        image = self.canvas.axes.imshow(wavefront, cmap=coolwarm)
+        image.set_clim(-np.pi, np.pi)
+        self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
+        self.canvas.draw()
     
 
 
+class BeamDialog(MatplotlibDialog):
+
+    def __init__(self, title, *args, **kwargs) -> None:
+        super().__init__(title, *args, **kwargs)
+        self.colorbar = None
+
+
+    def update(self, wavefront, new_title):
+        if self.colorbar is not None:
+            self.colorbar.remove()
+        self.canvas.axes.set_title(new_title)
+        self.data = wavefront
+        image = self.canvas.axes.imshow(wavefront, cmap=viridis)
+        image.set_clim(0, 1)
+        self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
+        self.canvas.draw()
+    
+
+class PhaseMaskDialog(MatplotlibDialog):
+
+    def __init__(self, title, *args, **kwargs) -> None:
+        super().__init__(title, *args, **kwargs)
+        self.colorbar = None
+
+
+    def update(self, wavefront, new_title):
+        if self.colorbar is not None:
+            self.colorbar.remove()
+        self.canvas.axes.set_title(new_title)
+        self.data = wavefront
+        image = self.canvas.axes.imshow(wavefront, cmap=coolwarm)
+        image.set_clim(-np.pi, np.pi)
+        self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
+        self.canvas.draw()
