@@ -10,8 +10,6 @@ import numpy as np
 # overwrite default with multiprocessing scheduler
 
 
-
-
 class Model(BaseModel):
     x: float
     y: float

@@ -1,8 +1,8 @@
 from typing import Tuple
 import numpy as np
-from pkg_resources import working_set  #
+# from pkg_resources import working_set  
 from faser.generators.base import *
-from faser.generators.utils import polar_to_cartesian
+# from faser.generators.utils import polar_to_cartesian
 
 def cart_to_polar(x, y) -> Tuple[np.ndarray, np.ndarray]:
     rho = np.sqrt(np.square(x) + np.square(y))
@@ -423,7 +423,7 @@ def generate_psf(s: PSFConfig) -> np.ndarray:
 
    # I1 = I1 + np.abs(np.random.normal(0, s.Detector_gaussian_noise, I1.shape))
 
-    if s.Rescale==rescale.YES:
+    if s.Normalize==normalize.YES:
         # We are only rescaling to the max, not the min
         I1 = I1 / np.max(I1)
 

@@ -1,11 +1,11 @@
-import itertools
-import os
+# import itertools
+# import os
 import typing
 from enum import Enum
 from typing import Any, Callable, List, Type
 
-import dask
-import dask.array as da
+# import dask
+# import dask.array as da
 import napari
 import numpy as np
 import pydantic
@@ -15,15 +15,15 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget
 from qtpy import QtGui, QtWidgets
 from superqt import (
-    QDoubleRangeSlider,
+    # QDoubleRangeSlider,
     QEnumComboBox,
     QLabeledDoubleRangeSlider,
     QLabeledDoubleSlider,
 )
 
 from faser.env import get_asset_file
-from faser.generators.base import AberrationFloat, PSFConfig
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+# from faser.generators.base import AberrationFloat, PSFConfig
+# from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 from pydantic import BaseModel
 
 
@@ -53,7 +53,7 @@ class FormField(QtWidgets.QWidget):
         self.xlayout.removeWidget(oldwidget)
         oldwidget.setParent(None)
         self.xlayout.addWidget(newwidget)
-
+                                                               
     def emit_child_value_changed(self, value):
         self.on_child_value_changed.emit(self.key, value)
 
@@ -64,40 +64,51 @@ class FormField(QtWidgets.QWidget):
 
         if self.mode == "single":
             self.toggle_button.setIcon(QtGui.QIcon(batch_png))
-
+            self.toggle_button.setIconSize(QtCore.QSize(15,15))
+            # self.emit_child_value_changed(None)
             self.replace_widget(self.child, self.range_child)
 
         elif self.mode == "range":
             self.toggle_button.setIcon(QtGui.QIcon(single_png))
-            self.on_child_range_changed(None)
+            self.toggle_button.setIconSize(QtCore.QSize(15,15))
+            # self.on_child_range_changed(None)
             self.replace_widget(self.range_child, self.child)
 
         self.mode = "range" if self.mode == "single" else "single"
 
     def init_ui(self):
         assert self.child is not None, "Child widget must be set before init_ui()"
-        assert self.range_child is not None, "Child widget must be set before init_ui()"
+        assert self.range_child is not None, "Range_child widget must be set before init_ui()"
         self.xlayout = QtWidgets.QVBoxLayout()
+        self.xlayout.setContentsMargins(0,0,0,0)
+        self.xlayout.setSpacing(1)
 
         self.label = QtWidgets.QLabel(self.label)
         self.label.setToolTip(self.description or "No description yet")
         layout = QtWidgets.QHBoxLayout()
         self.labelWidget = QtWidgets.QWidget()
 
-        layout.addWidget(self.label)
-        layout.addStretch()
-
         if self.toggable:
             self.toggle_button = QtWidgets.QPushButton()
             self.toggle_button.setIcon(QtGui.QIcon(single_png))
+            self.toggle_button.setIconSize(QtCore.QSize(15,15))
             self.toggle_button.clicked.connect(self.on_change_mode)
             layout.addWidget(self.toggle_button)
+
+        layout.addWidget(self.label)
+        layout.addStretch()
+
+        # if self.mode == "single":
+        #     layout.addWidget(self.child)
+        # elif self.mode == "range":
+        #     layout.addWidget(self.range_child)
 
         self.labelWidget.setLayout(layout)
         self.xlayout.addWidget(self.labelWidget)
         self.xlayout.addWidget(self.child)
 
         self.setLayout(self.xlayout)
+        # self.setLayout(layout)
 
 
 class FloatRange(pydantic.BaseModel):
@@ -114,20 +125,31 @@ class FloatRangeStepSliderField(QtWidgets.QWidget):
 
     def __init__(self, *args, gt=None, lt=None, steps=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.layout = QtWidgets.QHBoxLayout()
-
+        # self.layout = QtWidgets.QHBoxLayout()
+        self.xlayout = QtWidgets.QHBoxLayout()
+        self.xlayout.setContentsMargins(0,0,0,0)
+        self.xlayout.setSpacing(1)
+       
         self.range_slider = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
         self.range_slider.setRange(gt or 0.0, lt or 1.0)
+        self.range_slider.setValue((0.2, 0.8))
+        self.range_slider.setStyleSheet("QWidget {font-size: 8pt;}")
+
         self.text_input = QtWidgets.QLineEdit()
-        self.text_input.setFixedWidth(30)
+        self.text_input.setFixedWidth(15)
         self.text_input.setText(str(steps) or 3)
         self.text_input.setValidator(QtGui.QIntValidator())
 
         self.range_slider.valueChanged.connect(self.on_range_valued_callback)
-        self.layout.addWidget(self.range_slider)
-        self.layout.addWidget(self.text_input)
+        # self.layout.addWidget(self.range_slider)
+        # self.layout.addWidget(self.text_input)
+        self.xlayout.addWidget(self.range_slider)
+        self.xlayout.addSpacing(25)
+        self.xlayout.addWidget(self.text_input)
         self.text_input.textChanged.connect(self.on_text_changed)
-        self.setLayout(self.layout)
+
+        # self.setLayout(self.layout)
+        self.setLayout(self.xlayout)
 
     def on_range_valued_callback(self, value):
         self.on_range_changed.emit(
@@ -167,7 +189,7 @@ class IntRangeStepSliderField(QtWidgets.QWidget):
         self.range_slider = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
         self.range_slider.setRange(gt or 0.0, lt or 1.0)
         self.text_input = QtWidgets.QLineEdit()
-        self.text_input.setFixedWidth(30)
+        self.text_input.setFixedWidth(20)
         self.text_input.setText(str(steps) or 3)
         self.text_input.setValidator(QtGui.QIntValidator())
 
@@ -283,7 +305,6 @@ class MultiEnumField(QtWidgets.QWidget):
         self.on_range_changed.emit(OptionRange(options=check_enums))
         
 
-    
 class EnumField(FormField):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

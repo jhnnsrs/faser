@@ -19,6 +19,7 @@ import numpy as np
 import itertools
 import dask.array as da
 import dask
+from matplotlib.cm import viridis
 import os
 from superqt.utils import thread_worker
 import tifffile
@@ -36,6 +37,8 @@ class HelperTab(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.viewer = viewer
         self.mylayout = QtWidgets.QVBoxLayout()
+        self.mylayout.setContentsMargins(0,0,0,0)
+        self.mylayout.setSpacing(2)
         self.setLayout(self.mylayout)
 
 
@@ -53,8 +56,9 @@ class ExportWorker(QtCore.QObject):
 
     def export_layer_with_config_data_to_file(self, data, export_dir, layer_name, config):
         export_file_dir = os.path.join(export_dir, slugify(layer_name))
+        # export_file_dir = os.path.join(export_dir, "test")
         os.makedirs(export_file_dir, exist_ok=True)
-        with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
+        with open(os.path.join(export_file_dir, "config.txt"), "w", encoding="utf-8") as f:
             f.write(config.json())
 
         tifffile.imsave(os.path.join(export_file_dir, "psf.tif"), data)
@@ -80,9 +84,9 @@ class ExportWorker(QtCore.QObject):
 
 @thread_worker
 def export_layer_with_config_data_to_file(data, export_dir, layer_name, config):
-    export_file_dir = os.path.join(export_dir, layer_name)
+    export_file_dir = os.path.join(export_dir, "test")
     os.makedirs(export_file_dir, exist_ok=True)
-    with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
+    with open(os.path.join(export_file_dir, "config.txt"), "w", encoding="utf-8") as f:
         f.write(config.json())
 
     tifffile.imsave(os.path.join(export_file_dir, "psf.tif"), data)
@@ -133,7 +137,7 @@ class ExportTab(HelperTab):
     def export_layer_with_config_data_to_file(data, export_dir, layer_name, config):
         export_file_dir = os.path.join(export_dir, layer_name)
         os.makedirs(export_file_dir, exist_ok=True)
-        with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
+        with open(os.path.join(export_file_dir, "config.txt"), "w", encoding="utf-8") as f:
             f.write(config.json())
 
         tifffile.imsave(os.path.join(export_file_dir, "psf.tif"), data)
@@ -261,7 +265,7 @@ class EffectiveTab(HelperTab):
         hlayout.addWidget(self.show)
         hlayout.addWidget(self.show_alternate)
 
-        self.mylayout.addStretch()
+        # self.mylayout.addStretch()
         self.mylayout.addWidget(self.label)
         self.mylayout.addLayout(hlayout)
 
@@ -295,6 +299,7 @@ class EffectiveTab(HelperTab):
             new_psf,
             name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
             metadata={"is_psf": True},
+            colormap="viridis",
         )
     
     def make_effective_psf_alternate(self):
@@ -313,6 +318,7 @@ class EffectiveTab(HelperTab):
             new_psf,
             name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
             metadata={"is_psf": True},
+            colormap="viridis",
         )
     
 
@@ -342,8 +348,8 @@ class EffectiveTab(HelperTab):
         layer_one = psf_layers[0] 
         layer_two = psf_layers[1] 
 
-        self.show.setText(f"{layer_one.name} > {layer_two.name}")
-        self.show_alternate.setText(f"{layer_two.name} > {layer_one.name}")
+        self.show.setText(f"{layer_one.name} -> {layer_two.name}")
+        self.show_alternate.setText(f"{layer_two.name} -> {layer_one.name}")
         self.show.setEnabled(True)
         self.show_alternate.setEnabled(True)
 
@@ -368,7 +374,7 @@ class ConvolveWorker(QtCore.QObject):
     def export_layer_with_config_data_to_file(self, data, export_dir, layer_name, config):
         export_file_dir = os.path.join(export_dir, slugify(layer_name))
         os.makedirs(export_file_dir, exist_ok=True)
-        with open(os.path.join(export_file_dir, "config.txt"), "w") as f:
+        with open(os.path.join(export_file_dir, "config.txt"), "w", encoding="utf-8") as f:
             f.write(config.json())
 
         tifffile.imsave(os.path.join(export_file_dir, "psf.tif"), data)
@@ -410,7 +416,7 @@ class ConvolveTab(HelperTab):
 
         self.show = QtWidgets.QPushButton("Select image and PSF")
         self.show.setEnabled(False)
-        self.show.clicked.connect(self.make_effective_psf)
+        self.show.clicked.connect(self.convolve_psf)
 
         self.mylayout.addWidget(self.show)
 
@@ -440,8 +446,8 @@ class ConvolveTab(HelperTab):
         print(value)
 
 
-    def make_effective_psf(self):
-        print("Making effective PSF")
+    def convolve_psf(self):
+        print("Convolve PSF and image")
         psf_layer = next(
             layer
             for layer in self.viewer.layers.selection
@@ -516,7 +522,7 @@ class HelperWidget(QtWidgets.QWidget):
     def __init__(self, viewer: napari.Viewer, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.viewer = viewer
-        self.export_tab = ExportTab(
+        self.effective_tab = EffectiveTab(
             self.viewer,
         )
         self.sample_tab = SampleTab(
@@ -525,20 +531,20 @@ class HelperWidget(QtWidgets.QWidget):
         self.inspect_tab = InspectTab(
             self.viewer,
         )
-        self.effective_tab = EffectiveTab(
+        self.convolve_tab = ConvolveTab(
             self.viewer,
         )
-        self.convolve_tab = ConvolveTab(
+        self.export_tab = ExportTab(
             self.viewer,
         )
         
         layout = QtWidgets.QGridLayout()
         tabwidget = QtWidgets.QTabWidget()
-        tabwidget.addTab(self.export_tab, "Export")
-        tabwidget.addTab(self.sample_tab, "Sample")
-        tabwidget.addTab(self.inspect_tab, "Inspect")
         tabwidget.addTab(self.effective_tab, "Effective")
-        tabwidget.addTab(self.convolve_tab, "Convolve")
+        tabwidget.addTab(self.sample_tab, "Sample")
+        # tabwidget.addTab(self.inspect_tab, "Inspect")
+        # tabwidget.addTab(self.convolve_tab, "Convolve")
+        tabwidget.addTab(self.export_tab, "Export")
         layout.addWidget(tabwidget, 0, 0)
 
 

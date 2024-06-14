@@ -1,20 +1,20 @@
-import typing
+# import typing
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QWidget
+# from PyQt5.QtWidgets import QWidget
 from qtpy import QtWidgets, QtGui
 import napari
-from superqt import QDoubleRangeSlider, QLabeledDoubleRangeSlider, QLabeledDoubleSlider
-import pydantic
+# from superqt import QDoubleRangeSlider, QLabeledDoubleRangeSlider, QLabeledDoubleSlider
+# import pydantic
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
-from typing import Callable, Type, Any
+# from typing import Callable, Type, Any
 import typing
-from pydantic.fields import ModelField
-from superqt import QEnumComboBox
+# from pydantic.fields import ModelField
+# from superqt import QEnumComboBox
 from enum import Enum
 from faser.generators.utils import polar_phase_mask, polar_to_cartesian
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf, generate_intensity_profile, generate_phase_mask, generate_aberration
-from pydantic.types import ConstrainedFloat
+# from pydantic.types import ConstrainedFloat
 import numpy as np
 import itertools
 import dask.array as da
@@ -44,6 +44,8 @@ class ScrollableWidget(QtWidgets.QWidget):
         )
 
         self.mylayout = QtWidgets.QVBoxLayout()
+        self.mylayout.setContentsMargins(0,0,0,0)
+        self.mylayout.setSpacing(1)
 
         for widget in self.managed_widgets:
             widget.init_ui()
@@ -90,10 +92,12 @@ class SampleTab(QtWidgets.QWidget):
         self.scroll.setWidget(self.widget)
 
         self.mylayout = QtWidgets.QVBoxLayout()
+        self.mylayout.setContentsMargins(0,0,0,0)
+        self.mylayout.setSpacing(1)
 
         if image is not None:
             self.im = QtGui.QPixmap(get_asset_file(image))
-            self.im = self.im.scaledToHeight(400)
+            self.im = self.im.scaledToHeight(300)
             self.label = QtWidgets.QLabel()
             self.label.setPixmap(self.im)
             self.mylayout.addWidget(self.label)
@@ -165,8 +169,8 @@ simulation_set = [
     "Nphi",
     "Nxy",
     "Nz",
-    "Rescale",
-    "add_detector_poisson_noise"
+    "Normalize"#,
+    #"add_detector_poisson_noise"
 ]
 
 geometry_set = [
@@ -175,8 +179,8 @@ geometry_set = [
     "n1",
     "n2",
     "n3",
-    "Collar",
     "Thickness",
+    "Collar",
     "Depth",
     "Tilt",
     "Window",
@@ -200,7 +204,6 @@ beam_set = [
     "Mask_offset_y",
     "p",
 ]
-
 
 aberration_set = [
     "a0",
@@ -228,7 +231,7 @@ class MainWidget(QtWidgets.QWidget):
             self.viewer,
 
             main = self,
-            image="Figure 1.png",
+            image="Figure_simu.png",
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(simulation_set),
@@ -236,60 +239,65 @@ class MainWidget(QtWidgets.QWidget):
         self.geometry_tab = SampleTab(
             self.viewer,
             main = self,
+            image="Figure_geom.png",
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(geometry_set),
+        )
+        self.beam_tab = BeamTab(
+            self.viewer,
+            main = self,
+            image="Figure_beam.png",
+            callback=self.callback,
+            range_callback=self.range_callback,
+            filter_fields=build_key_filter(beam_set),
         )
         self.aberration_tab = AbberationTab(
             self.viewer,
 
             main = self,
+            image="Figure_ab.png",
             callback=self.callback,
             range_callback=self.range_callback,
             filter_fields=build_key_filter(aberration_set),
         )
-        self.beam_tab = BeamTab(
-            self.viewer,
-            main = self,
-            callback=self.callback,
-            range_callback=self.range_callback,
-            filter_fields=build_key_filter(beam_set),
-        )
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
         self.setLayout(layout)
         tabwidget = QtWidgets.QTabWidget()
         tabwidget.addTab(self.simulation_tab, "Simulation")
         tabwidget.addTab(self.geometry_tab, "Geometry")
-        tabwidget.addTab(self.aberration_tab, "Abberation")
         tabwidget.addTab(self.beam_tab, "Beam")
+        tabwidget.addTab(self.aberration_tab, "Abberation")
 
 
 
         self.generate = QtWidgets.QPushButton("Generate")
 
         self.generate.clicked.connect(self.generate_psf)
-        self.generate.setMinimumHeight(30)
-        self.generate.setMaximumHeight(30)
+        self.generate.setMinimumHeight(25)
+        self.generate.setMaximumHeight(25)
 
         load_icon = QtGui.QIcon.fromTheme("document-open")
         self.loadb = QtWidgets.QPushButton()
         self.loadb.setIcon(load_icon)
         self.loadb.clicked.connect(self.load_model)
-        self.loadb.setMinimumWidth(30)
-        self.loadb.setMaximumWidth(30)
-        self.loadb.setMinimumHeight(30)
-        self.loadb.setMaximumHeight(30)
+        self.loadb.setMinimumWidth(15)
+        self.loadb.setMaximumWidth(15)
+        self.loadb.setMinimumHeight(15)
+        self.loadb.setMaximumHeight(15)
 
 
         save_icon = QtGui.QIcon.fromTheme("document-save")
         self.saveb = QtWidgets.QPushButton()
         self.saveb.setIcon(save_icon)
         self.saveb.clicked.connect(self.save_model)
-        self.saveb.setMinimumWidth(30)
-        self.saveb.setMaximumWidth(30)
-        self.saveb.setMinimumHeight(30)
-        self.saveb.setMaximumHeight(30)
+        self.saveb.setMinimumWidth(15)
+        self.saveb.setMaximumWidth(15)
+        self.saveb.setMinimumHeight(15)
+        self.saveb.setMaximumHeight(15)
 
        
 
@@ -299,7 +307,6 @@ class MainWidget(QtWidgets.QWidget):
         hlayout.addWidget(self.saveb)
        
         layout.addWidget(tabwidget)
-
 
 
         layout.addLayout(hlayout)
@@ -431,5 +438,6 @@ class MainWidget(QtWidgets.QWidget):
                 psf,
                 name=f"PSF ",
                 metadata={"is_psf": True, "config": config, "is_batch": False},
+                colormap="viridis",
             )
             self.generate.setText("Generate")

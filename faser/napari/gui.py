@@ -1,19 +1,19 @@
 import napari
 import numpy as np
-from magicgui import magic_factory, magicgui
-from faser.generators.base import PSFConfig, mode, polarization, window
+from magicgui import magicgui
+# from faser.generators.base import PSFConfig, mode, window
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 import numpy as np
 
 # import napari
-from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
+# from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from scipy import ndimage
 from skimage.transform import resize
 
 # from faser.generators.base import Aberration, Mode, WindowType, Polarization, PSFConfig
 # from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 
-slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
+slider = {"widget_type": "FloatSlider", "min": -1, "max": 1, "step": 0.05}
 tilt_slider = {"widget_type": "FloatSlider", "min": 0, "max": 90, "step": 0.05}
 detector_slider = {"widget_type": "FloatSlider", "min": 0, "max": 1, "step": 0.05}
 focal_slider = {"widget_type": "Slider", "min": 1, "max": 10, "step": 1}
@@ -22,7 +22,7 @@ beam_slider = {"widget_type": "FloatSlider", "min": 0.5, "max": 50, "step": 0.5}
 viewer = None
 
 
-@magicgui(
+""" @magicgui(
     call_button="Generate",
     LfocalXY=focal_slider,
     LfocalZ=focal_slider,
@@ -40,9 +40,9 @@ viewer = None
     tilt_angle=tilt_slider,
     gaussian_beam_noise=detector_slider,
     detector_gaussian_noise=detector_slider,
-)
-def generate_psf_gui(
-    viewer: napari.Viewer,
+) """
+def generate_psf_gui ():
+    """viewer: napari.Viewer,
     Nx=31,  # discretization of image plane
     Ny=31,
     Nz=31,
@@ -66,14 +66,14 @@ def generate_psf_gui(
     gaussian_beam_noise=0.0,
     detector_gaussian_noise=0.0,
     add_detector_poisson_noise=False,
-    rescale=True,
+    Normalize=True,
     # Phase profile
     Mode: mode = mode.GAUSSIAN,
     Window: window = window.NO,
     psi=0,
     eps=45,
-):
-    config = PSFConfig(
+    """
+    """    config = PSFConfig(
         a1=piston,
         a2=tip,
         a3=tilt,
@@ -99,19 +99,20 @@ def generate_psf_gui(
         LfocalX=LfocalXY * 1e-6,
         LfocalY=LfocalXY * 1e-6,  # observation scale Y
         LfocalZ=LfocalZ * 1e-6,
-        rescale=rescale,
+        Normalize=Normalize,
         psi_degree=psi,
         eps_degree=eps,
         tilt_angle_degree=tilt_angle,
     )
-
-    psf = generate_psf(config)
-    print(psf.max())
-    return viewer.add_image(
-        psf,
-        name=f"PSF {config.mode.name} {config} ",
-        metadata={"is_psf": True, "config": config},
-    )
+ """
+    #psf = generate_psf(config)
+    #print(psf.max())
+    #return viewer.add_image(
+    #    psf,
+    #    name=f"PSF {config.mode.name} {config} ",
+    #    metadata={"is_psf": True, "config": config},
+    #    colormap="viridis",
+    #)
 
 
 @magicgui(
@@ -135,9 +136,9 @@ def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
     )
 
 
-@magicgui(
+""" @magicgui(
     call_button="Convolve Image",
-)
+) """
 def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 
     psf_layer = next(
@@ -172,9 +173,9 @@ def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
     )
 
 
-@magicgui(
+""" @magicgui(
     call_button="Generate Space",
-)
+) """
 def generate_space(
     viewer: napari.Viewer, x_size=100, y_size=100, z_size=20, dots: int = 50
 ):
@@ -190,9 +191,9 @@ def generate_space(
     viewer.add_image(M, name="Space")
 
 
-@magicgui(
+""" @magicgui(
     call_button="Generate Space",
-)
+) """
 def calculate_fwhm(viewer: napari.Viewer):
 
     psf_layer = next(

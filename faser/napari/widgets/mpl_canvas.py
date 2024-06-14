@@ -9,10 +9,10 @@ from PyQt5 import QtCore, QtWidgets
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from matplotlib.cm import coolwarm, viridis
+from matplotlib.cm import coolwarm, viridis, turbo
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent=None, width=5, height=4, dpi=300):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
         super(MplCanvas, self).__init__(self.fig)
@@ -26,11 +26,12 @@ class MatplotlibDialog(QtWidgets.QDialog):
         self.title=title
 
         self.layout = QtWidgets.QVBoxLayout()
+        self.layout.setSpacing(1)
         self.setLayout(self.layout)
 
         self.again = QtWidgets.QPushButton("Popup")
 
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        self.canvas = MplCanvas(self, width=5, height=1, dpi=100)
         self.layout.addWidget(self.canvas)
         
         self.layout.addWidget(self.again)
@@ -47,9 +48,6 @@ class MatplotlibDialog(QtWidgets.QDialog):
         self.another = self.__class__(parent=self, title="Copy of " + self.title)
         self.another.update(self.data, "Copy of " + self.title)
         self.another.show()
-
-
-
 
 
 class WavefrontDialog(MatplotlibDialog):
@@ -69,7 +67,6 @@ class WavefrontDialog(MatplotlibDialog):
         self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
         self.canvas.draw()
     
-
 
 class BeamDialog(MatplotlibDialog):
 
@@ -101,7 +98,7 @@ class PhaseMaskDialog(MatplotlibDialog):
             self.colorbar.remove()
         self.canvas.axes.set_title(new_title)
         self.data = wavefront
-        image = self.canvas.axes.imshow(wavefront, cmap=coolwarm)
+        image = self.canvas.axes.imshow(wavefront, cmap=turbo)
         image.set_clim(-np.pi, np.pi)
         self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
         self.canvas.draw()
