@@ -1,9 +1,9 @@
-import contextlib
+# import contextlib
 # from faser.napari.gui import generate_psf_gui
 from faser.napari.main import main
 
-import napari
-import numpy as np
+# import napari
+# import numpy as np
 import argparse
 import os
 

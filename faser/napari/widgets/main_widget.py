@@ -8,7 +8,7 @@ import napari
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
 # from typing import Callable, Type, Any
-import typing
+# import typing
 # from pydantic.fields import ModelField
 # from superqt import QEnumComboBox
 from enum import Enum
@@ -20,6 +20,7 @@ import itertools
 import dask.array as da
 import dask
 import os
+import time
 from .fields import generate_single_widgets_from_model, build_key_filter
 from .mpl_canvas import MatplotlibDialog, WavefrontDialog, BeamDialog, PhaseMaskDialog
 
@@ -420,9 +421,12 @@ class MainWidget(QtWidgets.QWidget):
             name="Batch PSF",
             metadata={"is_psf": True, "configs": models, "is_batch": True},
             multiscale=False,
+            colormap="viridis",
         )
 
     def generate_psf(self):
+
+        start = time.time()
 
         self.generate.setText("Generating...")
 
@@ -441,3 +445,6 @@ class MainWidget(QtWidgets.QWidget):
                 colormap="viridis",
             )
             self.generate.setText("Generate")
+
+        end =time.time()
+        print(end - start)

@@ -17,6 +17,7 @@ def main(**kwargs):
     viewer.window.add_dock_widget(main, area="right", name="PSF")
     viewer.window.add_dock_widget(helper, area="right", name="Helper")
 
+
     napari.run()
 
 

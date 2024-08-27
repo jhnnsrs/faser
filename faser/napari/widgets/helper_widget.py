@@ -38,7 +38,7 @@ class HelperTab(QtWidgets.QWidget):
         self.viewer = viewer
         self.mylayout = QtWidgets.QVBoxLayout()
         self.mylayout.setContentsMargins(0,0,0,0)
-        self.mylayout.setSpacing(2)
+        self.mylayout.setSpacing(1)
         self.setLayout(self.mylayout)
 
 
@@ -197,7 +197,7 @@ class SampleTab(HelperTab):
 
 
         for widget in self.managed_widgets:
-            widget.init_ui()
+            widget.init_ui_helper()
             self.mylayout.addWidget(widget)
 
 
@@ -249,7 +249,7 @@ class EffectiveTab(HelperTab):
 
 
         for widget in self.managed_widgets:
-            widget.init_ui()
+            widget.init_ui_helper_eff()
             self.mylayout.addWidget(widget)
 
         self.label = QtWidgets.QLabel("Make Effective PSF")
@@ -411,7 +411,7 @@ class ConvolveTab(HelperTab):
 
 
         for widget in self.managed_widgets:
-            widget.init_ui()
+            widget.init_ui_helper()
             self.mylayout.addWidget(widget)
 
         self.show = QtWidgets.QPushButton("Select image and PSF")
@@ -543,7 +543,7 @@ class HelperWidget(QtWidgets.QWidget):
         tabwidget.addTab(self.effective_tab, "Effective")
         tabwidget.addTab(self.sample_tab, "Sample")
         # tabwidget.addTab(self.inspect_tab, "Inspect")
-        # tabwidget.addTab(self.convolve_tab, "Convolve")
+        tabwidget.addTab(self.convolve_tab, "Convolve")
         tabwidget.addTab(self.export_tab, "Export")
         layout.addWidget(tabwidget, 0, 0)
 

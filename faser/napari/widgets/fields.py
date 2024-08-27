@@ -110,6 +110,62 @@ class FormField(QtWidgets.QWidget):
         self.setLayout(self.xlayout)
         # self.setLayout(layout)
 
+    def init_ui_helper_eff(self):
+        assert self.child is not None, "Child widget must be set before init_ui()"
+        assert self.range_child is not None, "Range_child widget must be set before init_ui()"
+        self.xlayout = QtWidgets.QVBoxLayout()
+        self.xlayout.setContentsMargins(0,0,0,0)
+        self.xlayout.setSpacing(1)
+
+        self.label = QtWidgets.QLabel(self.label)
+        self.label.setToolTip(self.description or "No description yet")
+        layout = QtWidgets.QHBoxLayout()
+        self.labelWidget = QtWidgets.QWidget()
+
+        if self.toggable:
+            self.toggle_button = QtWidgets.QPushButton()
+            self.toggle_button.setIcon(QtGui.QIcon(single_png))
+            self.toggle_button.setIconSize(QtCore.QSize(15,15))
+            self.toggle_button.clicked.connect(self.on_change_mode)
+            layout.addWidget(self.toggle_button)
+
+        layout.addWidget(self.label)
+        # layout.addStretch()
+
+        # if self.mode == "single":
+        #     layout.addWidget(self.child)
+        # elif self.mode == "range":
+        #     layout.addWidget(self.range_child)
+
+        self.labelWidget.setLayout(layout)
+        self.xlayout.addWidget(self.labelWidget)
+        self.xlayout.addWidget(self.child)
+
+        self.setLayout(self.xlayout)
+        # self.setLayout(layout)
+
+    def init_ui_helper(self):
+        # self.xlayout = QtWidgets.QVBoxLayout()
+        self.xlayout = QtWidgets.QHBoxLayout()
+        self.xlayout.setContentsMargins(0,0,0,0)
+        self.xlayout.setSpacing(1)
+
+        self.label = QtWidgets.QLabel(self.label)
+        self.label.setToolTip(self.description or "No description yet")
+        layout = QtWidgets.QHBoxLayout()
+        self.labelWidget = QtWidgets.QWidget()
+
+        layout.addWidget(self.label)
+        # layout.addStretch()
+
+        
+        self.labelWidget.setLayout(layout)
+        self.xlayout.addWidget(self.labelWidget)
+        self.xlayout.addWidget(self.child)
+
+        self.setLayout(self.xlayout)
+        # self.setLayout(layout)
+
 
 class FloatRange(pydantic.BaseModel):
     min: float
