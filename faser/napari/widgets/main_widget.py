@@ -1,28 +1,40 @@
 # import typing
-from PyQt5 import QtCore
-# from PyQt5.QtWidgets import QWidget
-from qtpy import QtWidgets, QtGui
-import napari
-# from superqt import QDoubleRangeSlider, QLabeledDoubleRangeSlider, QLabeledDoubleSlider
-# import pydantic
-from faser.env import get_asset_file
-from faser.generators.base import AberrationFloat, PSFConfig
+import itertools
+import os
+import time
+
 # from typing import Callable, Type, Any
 # import typing
 # from pydantic.fields import ModelField
 # from superqt import QEnumComboBox
 from enum import Enum
-from faser.generators.utils import polar_phase_mask, polar_to_cartesian
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf, generate_intensity_profile, generate_phase_mask, generate_aberration
+
+import dask
+import dask.array as da
+import napari
+
 # from pydantic.types import ConstrainedFloat
 import numpy as np
-import itertools
-import dask.array as da
-import dask
-import os
-import time
-from .fields import generate_single_widgets_from_model, build_key_filter
-from .mpl_canvas import MatplotlibDialog, WavefrontDialog, BeamDialog, PhaseMaskDialog
+from PyQt5 import QtCore
+
+# from PyQt5.QtWidgets import QWidget
+from qtpy import QtGui, QtWidgets
+
+# from superqt import QDoubleRangeSlider, QLabeledDoubleRangeSlider, QLabeledDoubleSlider
+# import pydantic
+from faser.env import get_asset_file
+from faser.generators.base import AberrationFloat, PSFConfig
+from faser.generators.utils import polar_phase_mask, polar_to_cartesian
+from faser.generators.vectorial.stephane.tilted_coverslip import (
+    generate_aberration,
+    generate_intensity_profile,
+    generate_phase_mask,
+    generate_psf,
+)
+
+from .fields import build_key_filter, generate_single_widgets_from_model
+from .mpl_canvas import BeamDialog, MatplotlibDialog, PhaseMaskDialog, WavefrontDialog
+
 
 class ScrollableWidget(QtWidgets.QWidget):
     def __init__(
@@ -45,7 +57,7 @@ class ScrollableWidget(QtWidgets.QWidget):
         )
 
         self.mylayout = QtWidgets.QVBoxLayout()
-        self.mylayout.setContentsMargins(0,0,0,0)
+        self.mylayout.setContentsMargins(0, 0, 0, 0)
         self.mylayout.setSpacing(1)
 
         for widget in self.managed_widgets:
@@ -57,14 +69,18 @@ class ScrollableWidget(QtWidgets.QWidget):
 
     def model_value_changed(self, name, value):
         self.active_base_model.__setattr__(name, value)
-        print(self.active_base_model.dict())
+        print(self.active_base_model.model_dump_json())
+
+    def reset(self):
+        for widget in self.managed_widgets:
+            widget.reset_default()
 
 
 class SampleTab(QtWidgets.QWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        main = None,
+        main=None,
         *args,
         filter_fields=None,
         callback=None,
@@ -93,7 +109,7 @@ class SampleTab(QtWidgets.QWidget):
         self.scroll.setWidget(self.widget)
 
         self.mylayout = QtWidgets.QVBoxLayout()
-        self.mylayout.setContentsMargins(0,0,0,0)
+        self.mylayout.setContentsMargins(0, 0, 0, 0)
         self.mylayout.setSpacing(1)
 
         if image is not None:
@@ -106,6 +122,9 @@ class SampleTab(QtWidgets.QWidget):
         self.mylayout.addWidget(self.scroll)
 
         self.setLayout(self.mylayout)
+
+    def reset(self):
+        self.widget.reset()
 
 
 @dask.delayed
@@ -130,13 +149,14 @@ class AbberationTab(SampleTab):
         self.show_button = QtWidgets.QPushButton("Show Wavefront")
         self.show_button.clicked.connect(self.show_wavefront)
         self.wavefront_dialog = WavefrontDialog("Wavefront", parent=self)
-        
+
         self.mylayout.addWidget(self.show_button)
 
     def show_wavefront(self):
-        self.wavefront_dialog.update(generate_aberration(self.main.active_base_model), "Wavefront")
+        self.wavefront_dialog.update(
+            generate_aberration(self.main.active_base_model), "Wavefront"
+        )
         self.wavefront_dialog.show()
-
 
 
 class BeamTab(SampleTab):
@@ -156,12 +176,17 @@ class BeamTab(SampleTab):
         self.mylayout.addWidget(self.showp_button)
 
     def show_intensity(self):
-        self.intensity_dialog.update(generate_intensity_profile(self.main.active_base_model), "Intensity")
+        self.intensity_dialog.update(
+            generate_intensity_profile(self.main.active_base_model), "Intensity"
+        )
         self.intensity_dialog.show()
 
     def show_phase_mask(self):
-        self.phase_mask_dialog.update(generate_phase_mask(self.main.active_base_model), "Phase mask")
+        self.phase_mask_dialog.update(
+            generate_phase_mask(self.main.active_base_model), "Phase mask"
+        )
         self.phase_mask_dialog.show()
+
 
 simulation_set = [
     "L_obs_XY",
@@ -170,8 +195,8 @@ simulation_set = [
     "Nphi",
     "Nxy",
     "Nz",
-    "Normalize"#,
-    #"add_detector_poisson_noise"
+    "Normalize",  # ,
+    # "add_detector_poisson_noise"
 ]
 
 geometry_set = [
@@ -228,10 +253,8 @@ class MainWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.viewer = viewer
         self.simulation_tab = SampleTab(
-
             self.viewer,
-
-            main = self,
+            main=self,
             image="Figure_simu.png",
             callback=self.callback,
             range_callback=self.range_callback,
@@ -239,7 +262,7 @@ class MainWidget(QtWidgets.QWidget):
         )
         self.geometry_tab = SampleTab(
             self.viewer,
-            main = self,
+            main=self,
             image="Figure_geom.png",
             callback=self.callback,
             range_callback=self.range_callback,
@@ -247,7 +270,7 @@ class MainWidget(QtWidgets.QWidget):
         )
         self.beam_tab = BeamTab(
             self.viewer,
-            main = self,
+            main=self,
             image="Figure_beam.png",
             callback=self.callback,
             range_callback=self.range_callback,
@@ -255,8 +278,7 @@ class MainWidget(QtWidgets.QWidget):
         )
         self.aberration_tab = AbberationTab(
             self.viewer,
-
-            main = self,
+            main=self,
             image="Figure_ab.png",
             callback=self.callback,
             range_callback=self.range_callback,
@@ -264,7 +286,7 @@ class MainWidget(QtWidgets.QWidget):
         )
 
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(1)
         self.setLayout(layout)
         tabwidget = QtWidgets.QTabWidget()
@@ -273,13 +295,14 @@ class MainWidget(QtWidgets.QWidget):
         tabwidget.addTab(self.beam_tab, "Beam")
         tabwidget.addTab(self.aberration_tab, "Abberation")
 
-
-
         self.generate = QtWidgets.QPushButton("Generate")
 
         self.generate.clicked.connect(self.generate_psf)
         self.generate.setMinimumHeight(25)
         self.generate.setMaximumHeight(25)
+
+        self.reset = QtWidgets.QPushButton("Reset")
+        self.reset.clicked.connect(self.reset_values)
 
         load_icon = QtGui.QIcon.fromTheme("document-open")
         self.loadb = QtWidgets.QPushButton()
@@ -290,7 +313,6 @@ class MainWidget(QtWidgets.QWidget):
         self.loadb.setMinimumHeight(15)
         self.loadb.setMaximumHeight(15)
 
-
         save_icon = QtGui.QIcon.fromTheme("document-save")
         self.saveb = QtWidgets.QPushButton()
         self.saveb.setIcon(save_icon)
@@ -300,19 +322,24 @@ class MainWidget(QtWidgets.QWidget):
         self.saveb.setMinimumHeight(15)
         self.saveb.setMaximumHeight(15)
 
-       
-
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.generate)
         hlayout.addWidget(self.loadb)
         hlayout.addWidget(self.saveb)
-       
-        layout.addWidget(tabwidget)
+        hlayout.addWidget(self.reset)
 
+        layout.addWidget(tabwidget)
 
         layout.addLayout(hlayout)
         self.active_base_model = PSFConfig()
 
+        self.active_batchers = {}
+
+    def reset_values(self):
+        self.simulation_tab.reset()
+        self.geometry_tab.reset()
+        self.beam_tab.reset()
+        self.aberration_tab.reset()
         self.active_batchers = {}
 
     def callback(self, name, value):
@@ -446,5 +473,5 @@ class MainWidget(QtWidgets.QWidget):
             )
             self.generate.setText("Generate")
 
-        end =time.time()
+        end = time.time()
         print(end - start)
