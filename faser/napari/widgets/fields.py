@@ -9,7 +9,7 @@ from typing import Any, Callable, List, Type
 import napari
 import numpy as np
 import pydantic
-from annotated_types import Gt, Lt
+from annotated_types import Ge, Gt, Le, Lt
 
 # from faser.generators.base import AberrationFloat, PSFConfig
 # from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
@@ -31,12 +31,16 @@ def get_field_gt(field: FieldInfo) -> float:
     for metadata in field.metadata:
         if isinstance(metadata, Gt):
             return metadata.gt
+        if isinstance(metadata, Ge):
+            return metadata.ge
 
 
 def get_field_lt(field: FieldInfo) -> float:
     for metadata in field.metadata:
         if isinstance(metadata, Lt):
             return metadata.lt
+        if isinstance(metadata, Le):
+            return metadata.le
 
 
 class FormField(QtWidgets.QWidget):

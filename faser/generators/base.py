@@ -126,10 +126,10 @@ class PSFConfig(BaseModel):
         lt=300,
     )
     Depth: float = Field(
-        default=0, description="Imaging depth in the sample (in µm)", gt=0, lt=150
+        default=0, description="Imaging depth in the sample (in µm)", ge=0, lt=150
     )
     Tilt: float = Field(
-        default=0, description="Tilt angle of the coverslip (in °)", gt=-10, lt=10
+        default=0, description="Tilt angle of the coverslip (in °)", ge=-10, lt=10
     )
 
     Window: window = window.NO
@@ -189,10 +189,10 @@ class PSFConfig(BaseModel):
 
     # Polarization parameters
     Psi: float = Field(
-        default=0, description="Direction of the polarization (in °)", gt=0, lt=180
+        default=0, description="Direction of the polarization (in °)", ge=0, le=180
     )
     Epsilon: float = Field(
-        default=45, description="Ellipticity of the polarization (in °)", gt=-45, lt=45
+        default=45, description="Ellipticity of the polarization (in °)", ge=-45, le=45
     )
 
     # STED parameters
@@ -235,10 +235,10 @@ class PSFConfig(BaseModel):
     Add_noise: noise = noise.YES  # Add noise to the PSF
 
     Gaussian_beam_noise: Annotated[float, Step(0.1)] = Field(
-        default=0.0, description="Gaussian_beam noise", gt=0, lt=1
+        default=0.0, description="Gaussian_beam noise", ge=0, lt=1
     )
     Detector_gaussian_noise: Annotated[float, Step(0.1)] = Field(
-        default=0.0, description="Detector Gaussian noise", gt=0, lt=1
+        default=0.0, description="Detector Gaussian noise", ge=0, lt=1
     )
     # Add_detector_poisson_noise: bool = False  # standard deviation of the noise
 

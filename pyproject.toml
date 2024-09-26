@@ -17,6 +17,7 @@ python-slugify = "^8.0.4"
 annotated-types = "^0.7.0"
 matplotlib = "^3.9.2"
 numpy = "<2"
+rich-click = "^1.8.3"
 
 
 [tool.poetry.scripts]
