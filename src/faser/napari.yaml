@@ -1,0 +1,14 @@
+name: faser
+contributions:
+  commands:
+    - id: faser.napari.helper_widget
+      title: OpenHelper Widget
+      python_name: faser.napari.widgets.helper_widget:HelperWidget
+    - id: faser.napari.main_widget
+      title: Open Main Widget
+      python_name: faser.napari.widgets.main_widget:MainWidget
+  widgets:
+    - command: faser.napari.helper_widget
+      display_name: Faser (Helper)
+    - command: faser.napari.main_widget
+      display_name: Faser (Generator)
