@@ -1,9 +1,0 @@
-name: faser
-contributions:
-  commands:
-    - id: faser.napari.generate_psf
-      title: Say hello, world!
-      python_name: faser.napari.gui:generate_psf
-  widgets:
-    - command: faser.napari.generate_psf
-      display_name: Faser
