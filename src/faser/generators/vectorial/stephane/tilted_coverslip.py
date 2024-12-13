@@ -383,6 +383,9 @@ def calculate_electric_field(s:PSFConfig) -> np.array:
             Psi_w = Psi_coverslip - Psi_collar
             Ab_wind = np.exp(1j * s.k0 * Psi_w)
 
+            #TODO: Implement the offset of the coverslip
+
+
             factored = sa * a * Amp * PM * W * Ab_wind * propagation
 
             Ex2 = Ex2 + factored * P[0, 0]

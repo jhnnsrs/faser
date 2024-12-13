@@ -141,6 +141,13 @@ class PSFConfig(BaseModel):
         default=2.23, description="Depth of the cranial window (in mm)"
     )
 
+    Wind_Offset_x: float = Field(
+        default=0, description="X offset of the cranial window in regard to pupil center"
+    )
+    Wind_Offset_y: float = Field(
+        default=0, description="Y offset of the cranial window in regard to pupil center"
+    )
+
     # Aberrations
     a0: AberrationFloat = Field(default=0, description="Piston", ge=-1, le=1)
     a1: AberrationFloat = Field(default=0, description="Vertical Tilt", ge=-1, le=1)
@@ -156,6 +163,8 @@ class PSFConfig(BaseModel):
     a7: AberrationFloat = Field(default=0, description="Vertical Coma", ge=-1, le=1)
     a8: AberrationFloat = Field(default=0, description="Horizontal Coma", ge=-1, le=1)
     a9: AberrationFloat = Field(default=0, description="Oblique Trefoil", ge=-1, le=1)
+    a10: AberrationFloat = Field(default=0, description="Oblique Coma", ge=-1, le=1)
+    a11: AberrationFloat = Field(default=0, description="Spherical", ge=-1, le=1)
     a12: AberrationFloat = Field(
         default=0, description="Primary spherical", ge=-1, le=1
     )

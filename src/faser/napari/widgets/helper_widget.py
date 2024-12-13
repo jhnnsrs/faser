@@ -24,7 +24,7 @@ from superqt import (
 )
 from superqt.utils import thread_worker
 
-
+import skimage.draw as draw
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
@@ -197,8 +197,18 @@ class SampleTab(HelperTab):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.show = QtWidgets.QPushButton("Create space")
-        self.show.clicked.connect(self.generate_space)
+        self.create_space = QtWidgets.QPushButton("Space")
+        self.create_space.clicked.connect(self.generate_space)
+
+        self.create_lines = QtWidgets.QPushButton("Grid")
+        self.create_lines.clicked.connect(self.generate_lines)
+
+
+        self.create_circles = QtWidgets.QPushButton("Circles")
+        self.create_circles.clicked.connect(self.generate_circles)
+
+
+
 
         self.managed_widgets = generate_single_widgets_from_model(
             SpaceModel,
@@ -215,7 +225,9 @@ class SampleTab(HelperTab):
 
         self.mylayout.addStretch()
 
-        self.mylayout.addWidget(self.show)
+        self.mylayout.addWidget(self.create_space)
+        self.mylayout.addWidget(self.create_lines)
+        self.mylayout.addWidget(self.create_circles)
         self.space_model = SpaceModel()
 
     def callback(self, name, value):
@@ -245,6 +257,50 @@ class SampleTab(HelperTab):
 
         self.viewer.add_image(M, name="Space")
 
+
+    def generate_lines(self):
+        x = np.linspace(0, self.space_model.x_size - 1, num=int(self.space_model.x_size / self.space_model.dots))
+        y = np.linspace(0, self.space_model.y_size - 1, num=int(self.space_model.y_size / self.space_model.dots))
+        z = np.linspace(0, self.space_model.z_size - 1, num=int(self.space_model.z_size / self.space_model.dots))
+
+        M = np.zeros(
+            (
+            self.space_model.z_size,
+            self.space_model.y_size,
+            self.space_model.x_size,
+            )
+        )
+
+        for xi in x:
+            M[:, :, int(xi)] = 1  # Draw lines along z-axis
+
+        for yi in y:
+            M[:, int(yi), :] = 1
+
+        for zi in z:
+            M[int(zi), :, :] = 1
+
+        self.viewer.add_image(M, name="3D Grid")
+
+    def generate_circles(self):
+        center_x = self.space_model.x_size // 2
+        center_y = self.space_model.y_size // 2
+
+        M = np.zeros(
+            (
+                self.space_model.x_size,
+                self.space_model.y_size,
+            )
+        )
+
+        for radius in range(self.space_model.dots, min(self.space_model.x_size, self.space_model.y_size) // 2, self.space_model.dots):
+            rr, cc = draw.circle_perimeter(center_y, center_x, radius)
+            valid = (rr >= 0) & (rr < self.space_model.y_size) & (cc >= 0) & (cc < self.space_model.x_size)
+            M[rr[valid], cc[valid]] = 1
+
+        self.viewer.add_image(M, name="Concentric Circles")
+
+        
 
 class EffectiveModel(pydantic.BaseModel):
     Isat: float = pydantic.Field(default=0.1, lt=1, gt=0)
@@ -276,9 +332,14 @@ class EffectiveTab(HelperTab):
         self.show_alternate.setEnabled(False)
         self.show_alternate.clicked.connect(self.make_effective_psf_alternate)
 
+        self.calculate_zero_intensity = QtWidgets.QPushButton("Calculate Zero Intensity")
+        self.calculate_zero_intensity.clicked.connect(self.calculate_zerointensity)
+
+
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.show)
         hlayout.addWidget(self.show_alternate)
+        hlayout.addWidget(self.calculate_zero_intensity)
 
         # self.mylayout.addStretch()
         self.mylayout.addWidget(self.label)
@@ -295,6 +356,47 @@ class EffectiveTab(HelperTab):
             self.effective_model.__getattribute__(split[0]).__setattr__(split[1], value)
         else:
             self.effective_model.__setattr__(name, value)
+
+    def calculate_zerointensity(self):
+        psf_layers = list(
+            layer
+            for layer in self.viewer.layers.selection
+            if layer.metadata.get("is_psf", True)
+        )
+
+        assert len(psf_layers) == 1, "Select exactly one PSF"
+
+        combined_psf = psf_layers[0]
+
+        configs = combined_psf.metadata.get("is_combination_of", None)
+        assert configs is not None, "Select a combined PSF"
+
+        
+        non_gaussian_psf = next(
+            config for config in configs if config.Mode != "GAUSSIAN"
+        )
+
+        non_gaussian_but_gaussian = PSFConfig(**non_gaussian_psf.dict())
+        non_gaussian_but_gaussian.Mode = "GAUSSIAN"
+
+        psf = generate_psf(non_gaussian_but_gaussian)
+        print(psf)
+
+        arg_max_pos = np.unravel_index(np.argmax(psf), psf.shape)
+        print(arg_max_pos)
+
+        zero_intensity = combined_psf.data[arg_max_pos]
+
+        features = {}
+
+        self.viewer.add_points([arg_max_pos], name="Zero Intensity", size=1, face_color="red", text = {
+            'string': 'Intensity: ' + str(zero_intensity),
+            'size': 13,
+        }, features=features)
+
+
+
+
 
     def make_effective_psf(self):
         I_sat = self.effective_model.Isat
@@ -313,7 +415,7 @@ class EffectiveTab(HelperTab):
         return self.viewer.add_image(
             new_psf,
             name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
-            metadata={"is_psf": True},
+            metadata={"is_psf": True, "is_combination_of": [psf_layer_one.metadata.get("config"), psf_layer_one.metadata.get("config")]},
             colormap="viridis",
         )
 
@@ -402,14 +504,14 @@ class ConvolveWorker(QtCore.QObject):
             psf_data = self.psf_data[self.psf_data.shape[0] // 2, :, :]
 
             con = signal.convolve(
-                self.image_data, psf_data, mode="constant", cval=0.0, origin=0
+                self.image_data, psf_data, mode="same", method="fft"
             )
 
             self.finished.emit(con)
             return
 
         con = signal.convolve(
-            self.image_data, self.psf_data, mode="full", method="fft"
+            self.image_data, self.psf_data, mode="same", method="fft"
         )
 
         self.finished.emit(con)
