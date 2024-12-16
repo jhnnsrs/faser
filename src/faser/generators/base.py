@@ -126,10 +126,10 @@ class PSFConfig(BaseModel):
         lt=300,
     )
     Depth: float = Field(
-        default=0, description="Imaging depth in the sample (in µm)", ge=0, lt=150
+        default=0, description="Imaging depth in the sample (in µm)", ge=0, lt=1000
     )
     Tilt: float = Field(
-        default=0, description="Tilt angle of the coverslip (in °)", ge=-10, lt=10
+        default=0, description="Tilt angle of the coverslip (in °)", ge=-20, lt=20
     )
 
     Window: window = window.NO
@@ -163,10 +163,11 @@ class PSFConfig(BaseModel):
     a7: AberrationFloat = Field(default=0, description="Vertical Coma", ge=-1, le=1)
     a8: AberrationFloat = Field(default=0, description="Horizontal Coma", ge=-1, le=1)
     a9: AberrationFloat = Field(default=0, description="Oblique Trefoil", ge=-1, le=1)
-    a10: AberrationFloat = Field(default=0, description="Oblique Coma", ge=-1, le=1)
-    a11: AberrationFloat = Field(default=0, description="Spherical", ge=-1, le=1)
     a12: AberrationFloat = Field(
         default=0, description="Primary spherical", ge=-1, le=1
+    )
+    a24: AberrationFloat = Field(
+        default=0, description="Secondary spherical", ge=-1, le=1
     )
     Aberration_offset_x: float = Field(
         default=0,
@@ -185,7 +186,7 @@ class PSFConfig(BaseModel):
         default=8000,
         description="Diameter of the input beam on the objective pupil (in µm)",
         gt=0,
-        lt=20000,
+        lt=25000,
     )
     Ampl_offset_x: float = Field(
         default=0,
@@ -214,8 +215,8 @@ class PSFConfig(BaseModel):
     RC: float = Field(
         default=1.0,
         description="Ring charge (should be odd to produce bottle)",
-        gt=-5,
-        lt=5,
+        gt=-6,
+        lt=6,
     )
     Ring_Radius: float = Field(
         default=0.707,

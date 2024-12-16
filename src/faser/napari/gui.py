@@ -37,6 +37,7 @@ viewer = None
     trefoil_v=slider,
     trefoil_h=slider,
     spherical=slider,
+    spherical2nd=slider,
     tilt_angle=tilt_slider,
     gaussian_beam_noise=detector_slider,
     detector_gaussian_noise=detector_slider,
@@ -62,6 +63,7 @@ def generate_psf_gui ():
     trefoil_v=0.0,
     trefoil_h=0.0,
     spherical=0.0,
+    spherical2nd=0.0,
     tilt_angle=0.0,
     gaussian_beam_noise=0.0,
     detector_gaussian_noise=0.0,
@@ -85,6 +87,7 @@ def generate_psf_gui ():
         a9=trefoil_v,
         a10=trefoil_h,
         a11=spherical,
+        a24=spherical2nd
         Nx=Nx,
         Ny=Ny,
         Nz=Nz,

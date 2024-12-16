@@ -246,6 +246,7 @@ aberration_set = [
     "a8",
     "a9",
     "a12",
+    "a24",
     "Aberration_offset_x",
     "Aberration_offset_y",
 ]

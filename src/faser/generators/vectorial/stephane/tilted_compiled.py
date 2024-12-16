@@ -31,7 +31,8 @@ def zernike(x: np.ndarray, y: np.ndarray, s: PSFConfig):
     Z7 = np.sqrt(8) * (3 * rho**3 - 2 * rho) * np.sin(phi)  # Vertical coma
     Z8 = np.sqrt(8) * (3 * rho**3 - 2 * rho) * np.cos(phi)  # Horizontal coma
     Z9 = np.sqrt(8) * (rho**3) * np.cos(3 * phi)  # Oblique trefoil  
-    Z12 = np.sqrt(5) * (6 * rho**4 - 6 * rho**2 + 1)  # Primary spherical   
+    Z12 = np.sqrt(5) * (6 * rho**4 - 6 * rho**2 + 1)  # Primary spherical
+    Z24 = np.sqrt(7) * (20 * rho**6 - 30 * rho ** 4 + 12 * rho**2 - 1)  # Secondary spherical        
     zer = (
         s.a0 * Z0
         + s.a1 * Z1
@@ -44,6 +45,7 @@ def zernike(x: np.ndarray, y: np.ndarray, s: PSFConfig):
         + s.a8 * Z8
         + s.a9 * Z9
         + s.a12 * Z12
+        + s.a24 * Z24
     )
     return zer
 
