@@ -1,6 +1,6 @@
 [project]
 name = "faser"
-version = "0.3.0"
+version = "0.3.1"
 description = "Faser is a tool for vectorial psf simulation"
 authors = [
     { name = "Johannes Roos", email = "jhnnsrs@gmail.com" }

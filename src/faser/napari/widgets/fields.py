@@ -442,7 +442,10 @@ def generate_single_widgets_from_model(
         print(field_type)
 
         if issubclass(field_type, float):
-            widget = FloatSliderField(key, value, parent=parent)
+            if get_field_gt(value) is None:
+                    widget = FloatInputField(key, value, parent=parent)
+            else:
+                    widget = FloatSliderField(key, value, parent=parent)
 
         elif field_type == float:
             widget = FloatInputField(key, value, parent=parent)

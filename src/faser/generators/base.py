@@ -41,8 +41,6 @@ class mode(str, Enum):
 
 class window(str, Enum):
     NO = "NO"
-    OLD = "OLD"
-    NEW = "NEW"
     CUSTOM = "CUSTOM"
 
 
@@ -117,7 +115,7 @@ class PSFConfig(BaseModel):
     n2: float = Field(default=1.52, description="Refractive index of the coverslip")
     n3: float = Field(default=1.38, description="Refractive index of the sample")
     Thickness: float = Field(
-        default=170, description="Thickness of the coverslip (in µm)"
+        default=170, description="Thickness of the coverslip (in µm)", ge=0, lt=300
     )
     Collar: float = Field(
         default=170,
@@ -263,10 +261,6 @@ class PSFConfig(BaseModel):
     def r_wind(self):  # No cranial window
         if self.Window == window.NO:
             return 100 * self.t_wind
-        elif self.Window == window.OLD:  # Old cylindrical cranial window
-            return 1.5e3
-        elif self.Window == window.NEW:  # New conical cranial window
-            return 2.3e3
         elif self.Window == window.CUSTOM:
             return self.Wind_Radius * 1e3
         else:
