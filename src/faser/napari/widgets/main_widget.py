@@ -32,9 +32,10 @@ from faser.generators.vectorial.stephane.tilted_coverslip import (
     generate_phase_mask,
     generate_psf,
 )
+from faser.napari.widgets.helper_widget import comparative_value
 
 from .fields import build_key_filter, generate_single_widgets_from_model
-from .mpl_canvas import BeamDialog, MatplotlibDialog, PhaseMaskDialog, WavefrontDialog
+from .mpl_canvas import BeamDialog, MatplotlibDialog, MaximumDialog, PhaseMaskDialog, WavefrontDialog
 
 
 class ScrollableWidget(QtWidgets.QWidget):
@@ -251,6 +252,31 @@ aberration_set = [
     "Aberration_offset_y",
 ]
 
+default_config = PSFConfig()
+
+
+def create_label(config: PSFConfig):
+    label = ""
+    for field in config.__fields__:
+        a = default_config.__getattribute__(field)
+        b = config.__getattribute__(field)
+
+
+
+        if a != b:
+            label += f" {field}: {comparative_value(a, b)}"
+
+
+    if label == "":
+        return "Default"
+    
+    return label
+
+
+
+
+
+
 
 class MainWidget(QtWidgets.QWidget):
     def __init__(self, viewer: napari.Viewer, *args, **kwargs) -> None:
@@ -347,6 +373,8 @@ class MainWidget(QtWidgets.QWidget):
         layout.addLayout(hlayout)
         self.active_base_model = PSFConfig()
 
+
+
         self.active_batchers = {}
 
     def reset_values(self):
@@ -366,6 +394,7 @@ class MainWidget(QtWidgets.QWidget):
             self.active_base_model.__setattr__(name, value)
 
     def range_callback(self, name, value):
+        print("Range Callback called with", name)
         if value == None:
             if name in self.active_batchers:
                 del self.active_batchers[name]
@@ -481,7 +510,7 @@ class MainWidget(QtWidgets.QWidget):
             print(psf.max())
             self.viewer.add_image(
                 psf,
-                name=f"PSF ",
+                name=create_label(config),
                 metadata={"is_psf": True, "config": config, "is_batch": False},
                 colormap="viridis",
             )

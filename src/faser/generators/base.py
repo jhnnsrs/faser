@@ -82,8 +82,8 @@ class AberrationFloat(float):
 @evented
 class PSFConfig(BaseModel):
     # sampling parameters
-    L_obs_XY: float = Field(default=2, description="Observation scale in XY (in µm)")
-    L_obs_Z: float = Field(default=2, description="Observation scale in Z (in µm)")
+    L_obs_XY: float = Field(default=2., description="Observation scale in XY (in µm)")
+    L_obs_Z: float = Field(default=2., description="Observation scale in Z (in µm)")
     Nxy: int = Field(
         default=31,
         description="Discretization of image plane - better be odd number for perfect 0",
@@ -101,13 +101,13 @@ class PSFConfig(BaseModel):
 
     # Normalization
     Normalize: normalize = (
-        normalize.YES
+        normalize.NO
     )  # Normalize the intensity of the PSF to have a maximum of 1
 
     # Geometry parameters
     NA: float = Field(default=1, description="Numerical Aperture of Objective Lens")
     WD: float = Field(
-        default=2800, description="Working Distance of the objective lens (in µm)"
+        default=2800., description="Working Distance of the objective lens (in µm)"
     )
     n1: float = Field(
         default=1.33, description="Refractive index of the immersion medium"
@@ -115,10 +115,10 @@ class PSFConfig(BaseModel):
     n2: float = Field(default=1.52, description="Refractive index of the coverslip")
     n3: float = Field(default=1.38, description="Refractive index of the sample")
     Thickness: float = Field(
-        default=170, description="Thickness of the coverslip (in µm)", ge=0, lt=300
+        default=170., description="Thickness of the coverslip (in µm)", ge=0, lt=300
     )
     Collar: float = Field(
-        default=170,
+        default=170.,
         description="Correction collar setting to compensate coverslip thickness",
         gt=0,
         lt=300,
@@ -127,7 +127,7 @@ class PSFConfig(BaseModel):
         default=0, description="Imaging depth in the sample (in µm)", ge=0, lt=1000
     )
     Tilt: float = Field(
-        default=0, description="Tilt angle of the coverslip (in °)", ge=-20, lt=20
+        default=0., description="Tilt angle of the coverslip (in °)", ge=-20, lt=20
     )
 
     Window: window = window.NO
@@ -140,39 +140,39 @@ class PSFConfig(BaseModel):
     )
 
     Wind_Offset_x: float = Field(
-        default=0, description="X offset of the cranial window in regard to pupil center"
+        default=0., description="X offset of the cranial window in regard to pupil center"
     )
     Wind_Offset_y: float = Field(
-        default=0, description="Y offset of the cranial window in regard to pupil center"
+        default=0., description="Y offset of the cranial window in regard to pupil center"
     )
 
     # Aberrations
-    a0: AberrationFloat = Field(default=0, description="Piston", ge=-1, le=1)
-    a1: AberrationFloat = Field(default=0, description="Vertical Tilt", ge=-1, le=1)
-    a2: AberrationFloat = Field(default=0, description="Horizontal Tilt", ge=-1, le=1)
+    a0: AberrationFloat = Field(default=0., description="Piston", ge=-1, le=1)
+    a1: AberrationFloat = Field(default=0., description="Vertical Tilt", ge=-1, le=1)
+    a2: AberrationFloat = Field(default=0., description="Horizontal Tilt", ge=-1, le=1)
     a3: AberrationFloat = Field(
         default=0, description="Oblique Astigmatism", ge=-1, le=1
     )
-    a4: AberrationFloat = Field(default=0, description="Defocus", ge=-1, le=1)
+    a4: AberrationFloat = Field(default=0., description="Defocus", ge=-1, le=1)
     a5: AberrationFloat = Field(
         default=0, description="Vertical Astigmatism", ge=-1, le=1
     )
-    a6: AberrationFloat = Field(default=0, description="Vertical Trefoil", ge=-1, le=1)
-    a7: AberrationFloat = Field(default=0, description="Vertical Coma", ge=-1, le=1)
-    a8: AberrationFloat = Field(default=0, description="Horizontal Coma", ge=-1, le=1)
-    a9: AberrationFloat = Field(default=0, description="Oblique Trefoil", ge=-1, le=1)
+    a6: AberrationFloat = Field(default=0., description="Vertical Trefoil", ge=-1., le=1)
+    a7: AberrationFloat = Field(default=0., description="Vertical Coma", ge=-1, le=1)
+    a8: AberrationFloat = Field(default=0., description="Horizontal Coma", ge=-1, le=1)
+    a9: AberrationFloat = Field(default=0., description="Oblique Trefoil", ge=-1, le=1)
     a12: AberrationFloat = Field(
-        default=0, description="Primary spherical", ge=-1, le=1
+        default=0., description="Primary spherical", ge=-1, le=1
     )
     a24: AberrationFloat = Field(
-        default=0, description="Secondary spherical", ge=-1, le=1
+        default=0., description="Secondary spherical", ge=-1, le=1
     )
     Aberration_offset_x: float = Field(
-        default=0,
+        default=0.,
         description="X offset of the aberration function in regard to pupil center",
     )
     Aberration_offset_y: float = Field(
-        default=0,
+        default=0.,
         description="Y offset of the aberration function in regard to pupil center",
     )
 
@@ -181,26 +181,26 @@ class PSFConfig(BaseModel):
     Polarization: polarization = polarization.ELLIPTICAL
     Wavelength: float = Field(default=0.592, description="Wavelength of light (in µm)")
     Waist: float = Field(
-        default=8000,
+        default=8000.,
         description="Diameter of the input beam on the objective pupil (in µm)",
         gt=0,
         lt=25000,
     )
     Ampl_offset_x: float = Field(
-        default=0,
+        default=0.,
         description="X offset of the amplitude profile in regard to pupil center",
     )
     Ampl_offset_y: float = Field(
-        default=0,
+        default=0.,
         description="Y offset of the amplitude profile in regard to pupil center",
     )
 
     # Polarization parameters
     Psi: float = Field(
-        default=0, description="Direction of the polarization (in °)", ge=0, le=180
+        default=0., description="Direction of the polarization (in °)", ge=0, le=180
     )
     Epsilon: float = Field(
-        default=45, description="Ellipticity of the polarization (in °)", ge=-45, le=45
+        default=45., description="Ellipticity of the polarization (in °)", ge=-45, le=45
     )
 
     # STED parameters
@@ -223,10 +223,10 @@ class PSFConfig(BaseModel):
         lt=1,
     )
     Mask_offset_x: float = Field(
-        default=0, description="X offset of the phase mask in regard to pupil center"
+        default=0., description="X offset of the phase mask in regard to pupil center"
     )
     Mask_offset_y: float = Field(
-        default=0, description="Y offset of the phase mask in regard to pupil center"
+        default=0., description="Y offset of the phase mask in regard to pupil center"
     )
     p: float = Field(
         default=0.5,

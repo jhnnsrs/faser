@@ -76,6 +76,7 @@ class FormField(QtWidgets.QWidget):
         self.on_child_value_changed.emit(self.key, value)
 
     def on_child_range_changed(self, value):
+        print("Emitting range change")
         self.on_child_range_value_changed.emit(self.key, value)
 
     def on_change_mode(self):
@@ -83,13 +84,14 @@ class FormField(QtWidgets.QWidget):
         if self.mode == "single":
             self.toggle_button.setIcon(QtGui.QIcon(batch_png))
             self.toggle_button.setIconSize(QtCore.QSize(15, 15))
-            # self.emit_child_value_changed(None)
+            self.on_child_range_changed(FloatRange(min=get_field_gt(self.field) or self.field.default, max=get_field_lt(self.field) or self.field.default, steps=3))
             self.replace_widget(self.child, self.range_child)
 
         elif self.mode == "range":
             self.toggle_button.setIcon(QtGui.QIcon(single_png))
             self.toggle_button.setIconSize(QtCore.QSize(15, 15))
-            # self.on_child_range_changed(None)
+            self.emit_child_value_changed(self.field.default)
+            self.on_child_range_changed(None)
             self.replace_widget(self.range_child, self.child)
 
         self.mode = "range" if self.mode == "single" else "single"
@@ -197,6 +199,22 @@ class FloatRange(pydantic.BaseModel):
         return np.linspace(self.min, self.max, self.steps, dtype=np.float64).tolist()
 
 
+class FloatList(pydantic.BaseModel):
+    items: List[float]
+
+    def to_list(self):
+        return self.items
+
+class IntList(pydantic.BaseModel):
+    items: List[int]
+
+    def to_list(self):
+        return self.items
+
+
+
+
+
 class FloatRangeStepSliderField(QtWidgets.QWidget):
     on_range_changed = QtCore.pyqtSignal(object)
 
@@ -209,7 +227,7 @@ class FloatRangeStepSliderField(QtWidgets.QWidget):
 
         self.range_slider = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
         self.range_slider.setRange(gt or 0.0, lt or 1.0)
-        self.range_slider.setValue((0.2, 0.8))
+        self.range_slider.setValue([gt or 0.0, lt or 1.0])
         self.range_slider.setStyleSheet("QWidget {font-size: 8pt;}")
 
         self.text_input = QtWidgets.QLineEdit()
@@ -254,7 +272,72 @@ class IntRange(pydantic.BaseModel):
 
     def to_list(self):
         return np.linspace(self.min, self.max, self.steps, dtype=np.int64).tolist()
+    
 
+
+
+class FloatRangeArrayField(QtWidgets.QWidget):
+    on_range_changed = QtCore.pyqtSignal(object)
+
+    def __init__(self, default, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.layout = QtWidgets.QHBoxLayout()
+        self.xlayout = QtWidgets.QVBoxLayout()
+        self.xlayout.setContentsMargins(0, 0, 0, 0)
+        self.xlayout.setSpacing(1)
+
+        self.text_input = QtWidgets.QLineEdit()
+        self.text_input.setText(str(default))
+
+
+        self.add_button = QtWidgets.QPushButton("+")
+        self.add_button.setFixedWidth(30)
+        self.add_button.clicked.connect(self.on_add_button)
+
+        self.add_bar = QtWidgets.QHBoxLayout()
+        self.add_bar.setContentsMargins(2, 2, 2, 2)
+        self.add_bar.addWidget(self.text_input)
+        self.add_bar.addWidget(self.add_button)
+
+        self.value_items = QtWidgets.QListWidget()
+        self.value_items.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.value_items.clicked.connect(self.mousePressEvent)
+
+        
+
+        self.chosen_items = set()
+
+
+        # self.layout.addWidget(self.range_slider)
+        # self.layout.addWidget(self.text_input)
+        self.xlayout.addWidget(self.value_items)
+        self.xlayout.addLayout(self.add_bar)
+
+        # self.setLayout(self.layout)
+        self.setLayout(self.xlayout)
+
+    def mousePressEvent(self, event):
+        if self.value_items.currentItem() is None:
+            return
+        self.chosen_items.remove(float(self.value_items.currentItem().text()))
+        self.on_range_changed.emit(
+            FloatList(items=list(self.chosen_items))
+        )
+        self.update_ui()
+
+
+    def update_ui(self):
+        self.value_items.clear()
+        for item in self.chosen_items:
+            self.value_items.addItem(str(item))
+            
+
+    def on_add_button(self):
+        self.chosen_items.add(float(self.text_input.text()))
+        self.on_range_changed.emit(
+            FloatList(items=list(self.chosen_items))
+        )
+        self.update_ui()
 
 class IntRangeStepSliderField(QtWidgets.QWidget):
     on_range_changed = QtCore.pyqtSignal(object)
@@ -304,15 +387,78 @@ class FloatSliderField(FormField):
         self.child.valueChanged.connect(self.emit_child_value_changed)
 
         self.range_child = FloatRangeStepSliderField(
-            gt=get_field_gt(self.field) or 0.0,
-            lt=get_field_lt(self.field) or 1,
-            steps=3,
+                gt=get_field_gt(self.field) or 0.0,
+                lt=get_field_lt(self.field) or 1,
+                steps=3,
         )
+        
         self.range_child.on_range_changed.connect(self.on_child_range_changed)
 
     def reset_value(self, value):
         self.child.setValue(value)
 
+
+class IntRangeArrayField(QtWidgets.QWidget):
+    on_range_changed = QtCore.pyqtSignal(object)
+
+    def __init__(self, default, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.layout = QtWidgets.QHBoxLayout()
+        self.xlayout = QtWidgets.QVBoxLayout()
+        self.xlayout.setContentsMargins(0, 0, 0, 0)
+        self.xlayout.setSpacing(1)
+
+        self.text_input = QtWidgets.QLineEdit()
+        self.text_input.setText(str(default))
+
+
+        self.add_button = QtWidgets.QPushButton("+")
+        self.add_button.setFixedWidth(30)
+        self.add_button.clicked.connect(self.on_add_button)
+
+        self.add_bar = QtWidgets.QHBoxLayout()
+        self.add_bar.setContentsMargins(2, 2, 2, 2)
+        self.add_bar.addWidget(self.text_input)
+        self.add_bar.addWidget(self.add_button)
+
+        self.value_items = QtWidgets.QListWidget()
+        self.value_items.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.value_items.clicked.connect(self.mousePressEvent)
+        
+
+        self.chosen_items = set()
+
+
+        # self.layout.addWidget(self.range_slider)
+        # self.layout.addWidget(self.text_input)
+        self.xlayout.addWidget(self.value_items)
+        self.xlayout.addLayout(self.add_bar)
+
+        # self.setLayout(self.layout)
+        self.setLayout(self.xlayout)
+
+
+    
+    def update_ui(self):
+        self.value_items.clear()
+        for item in self.chosen_items:
+            self.value_items.addItem(str(item))
+
+    def mousePressEvent(self, event):
+        if self.value_items.currentItem() is None:
+            return
+        self.chosen_items.remove(int(self.value_items.currentItem().text()))
+        self.on_range_changed.emit(
+            IntList(items=list(self.chosen_items))
+        )
+        self.update_ui()
+
+    def on_add_button(self):
+        self.chosen_items.add(float(self.text_input.text()))
+        self.on_range_changed.emit(
+            IntList(items=list(self.chosen_items))
+        )
+        self.update_ui()
 
 class IntInputField(FormField):
     def __init__(self, *args, **kwargs) -> None:
@@ -322,10 +468,8 @@ class IntInputField(FormField):
         self.child.setValidator(QtGui.QIntValidator())
         self.child.textChanged.connect(self.emit_text_changed)
 
-        self.range_child = IntRangeStepSliderField(
-            gt=get_field_gt(self.field) or 0.0,
-            lt=get_field_lt(self.field) or 1,
-            steps=3,
+        self.range_child = IntRangeArrayField(
+            default=self.field.default,
         )
         self.range_child.on_range_changed.connect(self.on_child_range_changed)
 
@@ -343,10 +487,8 @@ class FloatInputField(FormField):
         self.child.setText(str(self.field.default))
         self.child.textChanged.connect(self.emit_text_changed)
 
-        self.range_child = FloatRangeStepSliderField(
-            gt=get_field_gt(self.field) or 0.0,
-            lt=get_field_lt(self.field) or 1,
-            steps=3,
+        self.range_child = FloatRangeArrayField(
+            default=self.field.default,
         )
         self.range_child.on_range_changed.connect(self.on_child_range_changed)
 
@@ -410,6 +552,7 @@ class EnumField(FormField):
         super().__init__(*args, **kwargs)
         self.child = QEnumComboBox()
         self.child.setEnumClass(self.field.annotation)
+        self.child.setCurrentEnum(self.field.default)
         self.child.currentEnumChanged.connect(self.emit_child_value_changed)
 
         self.range_child = MultiEnumField(enum=self.field.annotation)

@@ -67,6 +67,79 @@ class WavefrontDialog(MatplotlibDialog):
         image.set_clim(-np.pi, np.pi)
         self.colorbar = self.canvas.fig.colorbar(image, ax=self.canvas.axes, orientation='vertical')
         self.canvas.draw()
+
+
+class MaximumDialog(MatplotlibDialog):
+
+    def __init__(self, title, *args, **kwargs) -> None:
+        super().__init__(title, *args, **kwargs)
+        self.colorbar = None
+        self.vals = None
+        self.labels = None
+
+
+    def update(self, vals: np.array, labels: np.array, new_title: str) -> None:
+
+        if not isinstance(vals, np.ndarray):
+            raise TypeError("vals must be a numpy array")
+            
+
+        self.vals = vals
+        self.labels = labels
+
+
+        shape = vals.shape
+
+        self.canvas.axes.clear()
+
+
+
+        if len(shape) == 1:
+            length = shape[0]
+            if length == 1:
+                self.canvas.axes.bar([0], vals)
+                self.canvas.axes.set_ylabel('Values')
+                self.canvas.axes.set_xticks([0])
+                self.canvas.axes.set_xticklabels(labels)
+                self.canvas.axes.text(0, vals[0], f"{vals[0]:.2f}", ha="center", va="center", color="black")
+
+            else:
+
+                self.canvas.axes.plot(vals)
+                self.canvas.axes.set_ylabel('Values')
+                if labels is not None:
+                    self.canvas.axes.set_xticks(range(len(vals)))
+                    self.canvas.axes.set_xticklabels(labels)
+
+        if len(shape) == 2:
+
+            self.canvas.axes.imshow(vals, cmap="coolwarm")
+            self.canvas.axes.set_ylabel('Values')
+            self.canvas.axes.set_label(labels)
+        
+
+            for i in range(shape[0]):
+                for j in range(shape[1]):
+                    self.canvas.axes.text(j, i, f"{vals[i, j]:.2f}", ha="center", va="center", color="black")
+                    
+            
+
+
+
+        if len(shape) == 3:
+            raise NotImplementedError("3D data not supported")
+
+
+        self.canvas.axes.set_title(new_title)
+        self.canvas.draw()
+    
+    def show_another(self) -> None:
+        self.another = self.__class__(parent=self, title="Copy of " + self.title)
+        self.another.update(self.vals, self.labels, "Copy of " + self.title)
+        self.another.show()
+
+
+
     
 
 class BeamDialog(MatplotlibDialog):
