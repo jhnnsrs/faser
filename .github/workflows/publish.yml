@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  uv-example:
+  publish:
     name: python
     runs-on: ubuntu-latest
 
