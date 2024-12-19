@@ -61,4 +61,5 @@ packages = ["src/faser", "src/faser/napari.yaml"]
 [tool.uv]
 dev-dependencies = [
     "napari>=0.5.5",
+    "pytest>=8.3.4",
 ]
