@@ -32,9 +32,16 @@ from faser.generators.vectorial.stephane.tilted_coverslip import (
     generate_phase_mask,
     generate_psf,
 )
+from faser.napari.widgets.helper_widget import comparative_value
 
 from .fields import build_key_filter, generate_single_widgets_from_model
-from .mpl_canvas import BeamDialog, MatplotlibDialog, PhaseMaskDialog, WavefrontDialog
+from .mpl_canvas import (
+    BeamDialog,
+    MatplotlibDialog,
+    MaximumDialog,
+    PhaseMaskDialog,
+    WavefrontDialog,
+)
 
 
 class ScrollableWidget(QtWidgets.QWidget):
@@ -91,7 +98,6 @@ class SampleTab(QtWidgets.QWidget):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-
         self.viewer = viewer
         self.main = main
 
@@ -112,7 +118,7 @@ class SampleTab(QtWidgets.QWidget):
         self.scroll.setWidget(self.widget)
 
         self.mylayout = QtWidgets.QVBoxLayout()
-        self.mylayout.setContentsMargins(10,10, 10, 10)
+        self.mylayout.setContentsMargins(10, 10, 10, 10)
         self.mylayout.setSpacing(1)
 
         if image is not None:
@@ -246,9 +252,27 @@ aberration_set = [
     "a8",
     "a9",
     "a12",
+    "a24",
     "Aberration_offset_x",
     "Aberration_offset_y",
 ]
+
+default_config = PSFConfig()
+
+
+def create_label(config: PSFConfig):
+    label = ""
+    for field in config.__fields__:
+        a = default_config.__getattribute__(field)
+        b = config.__getattribute__(field)
+
+        if a != b:
+            label += f" {field}: {comparative_value(a, b)}"
+
+    if label == "":
+        return "Default"
+
+    return label
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -304,8 +328,9 @@ class MainWidget(QtWidgets.QWidget):
         self.generate.setMinimumHeight(20)
         self.generate.setMaximumHeight(20)
 
-
-        load_pixmal = QtGui.QPixmap(get_asset_file("save.png")).scaled(15,15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        load_pixmal = QtGui.QPixmap(get_asset_file("save.png")).scaled(
+            15, 15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+        )
 
         load_icon = QtGui.QIcon(load_pixmal)
         self.loadb = QtWidgets.QPushButton()
@@ -316,7 +341,11 @@ class MainWidget(QtWidgets.QWidget):
         self.loadb.setMinimumHeight(20)
         self.loadb.setMaximumHeight(20)
 
-        save_icon = QtGui.QIcon(QtGui.QPixmap(get_asset_file("load.png")).scaled(15,15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        save_icon = QtGui.QIcon(
+            QtGui.QPixmap(get_asset_file("load.png")).scaled(
+                15, 15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            )
+        )
         self.saveb = QtWidgets.QPushButton()
         self.saveb.setIcon(save_icon)
         self.saveb.clicked.connect(self.save_model)
@@ -325,7 +354,11 @@ class MainWidget(QtWidgets.QWidget):
         self.saveb.setMinimumHeight(20)
         self.saveb.setMaximumHeight(20)
 
-        refresh_icon = QtGui.QIcon(QtGui.QPixmap(get_asset_file("refresh.png")).scaled(15,15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        refresh_icon = QtGui.QIcon(
+            QtGui.QPixmap(get_asset_file("refresh.png")).scaled(
+                15, 15, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            )
+        )
         self.resetb = QtWidgets.QPushButton()
         self.resetb.setIcon(refresh_icon)
         self.resetb.clicked.connect(self.reset_values)
@@ -365,6 +398,7 @@ class MainWidget(QtWidgets.QWidget):
             self.active_base_model.__setattr__(name, value)
 
     def range_callback(self, name, value):
+        print("Range Callback called with", name)
         if value == None:
             if name in self.active_batchers:
                 del self.active_batchers[name]
@@ -480,7 +514,7 @@ class MainWidget(QtWidgets.QWidget):
             print(psf.max())
             self.viewer.add_image(
                 psf,
-                name=f"PSF ",
+                name=create_label(config),
                 metadata={"is_psf": True, "config": config, "is_batch": False},
                 colormap="viridis",
             )

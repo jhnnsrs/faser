@@ -1,5 +1,5 @@
 from typing import Tuple
-import numpy as np#
+import numpy as np  #
 from faser.generators.base import *
 
 

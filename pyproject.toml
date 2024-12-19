@@ -1,6 +1,6 @@
 [project]
 name = "faser"
-version = "0.3.0"
+version = "0.3.2"
 description = "Faser is a tool for vectorial psf simulation"
 authors = [
     { name = "Johannes Roos", email = "jhnnsrs@gmail.com" }
@@ -10,12 +10,14 @@ dependencies = [
     "pydantic>2",
     "matplotlib>=3.9.2",
     "python-slugify>=8.0.4",
+    "tifffile>=2024.8.30",
+    "psygnal>=0.11.1",
 ]
 classifiers = [
     "Framework :: napari",
 ]
 readme = "README.md"
-requires-python = ">3.9,<=3.13"
+requires-python = ">=3.9, <3.13"
 
 [project.optional-dependencies]
 full = [
@@ -55,3 +57,9 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/faser", "src/faser/napari.yaml"]
+
+[tool.uv]
+dev-dependencies = [
+    "napari>=0.5.5",
+    "pytest>=8.3.4",
+]

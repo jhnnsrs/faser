@@ -119,7 +119,6 @@ def ensure_dict(values, order):
 
 
 class Zernike:
-
     """
     Encapsulates Zernike polynomials
     :param index: string, integer or tuple, index of Zernike polynomial e.g. 'defocus', 4, (2,2)
@@ -198,7 +197,6 @@ class Zernike:
         self._mutable = False
 
     def polynomial(self, size, normed=True, outside=np.nan):
-
         """
         For visualization of Zernike polynomial on a disc of unit radius
         :param size: integer, Defines the shape of square grid, e.g. 256 or 512
@@ -211,7 +209,6 @@ class Zernike:
         return self.phase(*rho_theta(int(size)), normed=normed, outside=outside)
 
     def phase(self, rho, theta, normed=True, outside=None):
-
         """
         For creation of a Zernike polynomial  with a given polar co-ordinate system
         :param rho: 2D square array,  radial axis
@@ -262,7 +259,6 @@ class Zernike:
 
 
 class ZernikeWavefront:
-
     """
     Encapsulates the wavefront defined by Zernike polynomials
     :param amplitudes: dictionary, nd array, tuple or list, Amplitudes of Zernike polynomials
@@ -290,7 +286,6 @@ class ZernikeWavefront:
         return len(self.zernikes)
 
     def polynomial(self, size, normed=True, outside=np.nan):
-
         """
         For visualization of weighted sum of Zernike polynomials on a disc of unit radius
         :param size: integer, Defines the shape of square grid, e.g. 256 or 512
@@ -307,7 +302,6 @@ class ZernikeWavefront:
         )
 
     def phase(self, rho, theta, normed=True, outside=None):
-
         """
         For creation of phase defined as a weighted sum of Zernike polynomial with a given polar co-ordinate system
         :param rho: 2D square array,  radial axis
@@ -326,7 +320,6 @@ class ZernikeWavefront:
 
 
 def random_zernike_wavefront(amplitude_ranges, order="noll", rng=None):
-
     """
     Creates random Zernike wavefront with random amplitudes drawn from a uniform distibution
     :param aplitude_ranges: dictionary, nd array, tuple or list, amplitude bounds

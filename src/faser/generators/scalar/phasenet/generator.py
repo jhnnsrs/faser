@@ -7,7 +7,6 @@ class PsfGenerator3D:
     """
 
     def __init__(self, psf_shape, units, lam_detection, n, na_detection, n_threads=4):
-
         """
         encapsulates 3D PSF generator
         :param psf_shape: tuple, psf shape as (z,y,x), e.g. (64,64,64)
