@@ -84,7 +84,13 @@ class FormField(QtWidgets.QWidget):
         if self.mode == "single":
             self.toggle_button.setIcon(QtGui.QIcon(batch_png))
             self.toggle_button.setIconSize(QtCore.QSize(15, 15))
-            self.on_child_range_changed(FloatRange(min=get_field_gt(self.field) or self.field.default, max=get_field_lt(self.field) or self.field.default, steps=3))
+            self.on_child_range_changed(
+                FloatRange(
+                    min=get_field_gt(self.field) or self.field.default,
+                    max=get_field_lt(self.field) or self.field.default,
+                    steps=3,
+                )
+            )
             self.replace_widget(self.child, self.range_child)
 
         elif self.mode == "range":
@@ -205,14 +211,12 @@ class FloatList(pydantic.BaseModel):
     def to_list(self):
         return self.items
 
+
 class IntList(pydantic.BaseModel):
     items: List[int]
 
     def to_list(self):
         return self.items
-
-
-
 
 
 class FloatRangeStepSliderField(QtWidgets.QWidget):
@@ -272,8 +276,6 @@ class IntRange(pydantic.BaseModel):
 
     def to_list(self):
         return np.linspace(self.min, self.max, self.steps, dtype=np.int64).tolist()
-    
-
 
 
 class FloatRangeArrayField(QtWidgets.QWidget):
@@ -289,7 +291,6 @@ class FloatRangeArrayField(QtWidgets.QWidget):
         self.text_input = QtWidgets.QLineEdit()
         self.text_input.setText(str(default))
 
-
         self.add_button = QtWidgets.QPushButton("+")
         self.add_button.setFixedWidth(30)
         self.add_button.clicked.connect(self.on_add_button)
@@ -303,10 +304,7 @@ class FloatRangeArrayField(QtWidgets.QWidget):
         self.value_items.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.value_items.clicked.connect(self.mousePressEvent)
 
-        
-
         self.chosen_items = set()
-
 
         # self.layout.addWidget(self.range_slider)
         # self.layout.addWidget(self.text_input)
@@ -320,24 +318,19 @@ class FloatRangeArrayField(QtWidgets.QWidget):
         if self.value_items.currentItem() is None:
             return
         self.chosen_items.remove(float(self.value_items.currentItem().text()))
-        self.on_range_changed.emit(
-            FloatList(items=list(self.chosen_items))
-        )
+        self.on_range_changed.emit(FloatList(items=list(self.chosen_items)))
         self.update_ui()
-
 
     def update_ui(self):
         self.value_items.clear()
         for item in self.chosen_items:
             self.value_items.addItem(str(item))
-            
 
     def on_add_button(self):
         self.chosen_items.add(float(self.text_input.text()))
-        self.on_range_changed.emit(
-            FloatList(items=list(self.chosen_items))
-        )
+        self.on_range_changed.emit(FloatList(items=list(self.chosen_items)))
         self.update_ui()
+
 
 class IntRangeStepSliderField(QtWidgets.QWidget):
     on_range_changed = QtCore.pyqtSignal(object)
@@ -387,11 +380,11 @@ class FloatSliderField(FormField):
         self.child.valueChanged.connect(self.emit_child_value_changed)
 
         self.range_child = FloatRangeStepSliderField(
-                gt=get_field_gt(self.field) or 0.0,
-                lt=get_field_lt(self.field) or 1,
-                steps=3,
+            gt=get_field_gt(self.field) or 0.0,
+            lt=get_field_lt(self.field) or 1,
+            steps=3,
         )
-        
+
         self.range_child.on_range_changed.connect(self.on_child_range_changed)
 
     def reset_value(self, value):
@@ -411,7 +404,6 @@ class IntRangeArrayField(QtWidgets.QWidget):
         self.text_input = QtWidgets.QLineEdit()
         self.text_input.setText(str(default))
 
-
         self.add_button = QtWidgets.QPushButton("+")
         self.add_button.setFixedWidth(30)
         self.add_button.clicked.connect(self.on_add_button)
@@ -424,10 +416,8 @@ class IntRangeArrayField(QtWidgets.QWidget):
         self.value_items = QtWidgets.QListWidget()
         self.value_items.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.value_items.clicked.connect(self.mousePressEvent)
-        
 
         self.chosen_items = set()
-
 
         # self.layout.addWidget(self.range_slider)
         # self.layout.addWidget(self.text_input)
@@ -437,8 +427,6 @@ class IntRangeArrayField(QtWidgets.QWidget):
         # self.setLayout(self.layout)
         self.setLayout(self.xlayout)
 
-
-    
     def update_ui(self):
         self.value_items.clear()
         for item in self.chosen_items:
@@ -448,17 +436,14 @@ class IntRangeArrayField(QtWidgets.QWidget):
         if self.value_items.currentItem() is None:
             return
         self.chosen_items.remove(int(self.value_items.currentItem().text()))
-        self.on_range_changed.emit(
-            IntList(items=list(self.chosen_items))
-        )
+        self.on_range_changed.emit(IntList(items=list(self.chosen_items)))
         self.update_ui()
 
     def on_add_button(self):
         self.chosen_items.add(float(self.text_input.text()))
-        self.on_range_changed.emit(
-            IntList(items=list(self.chosen_items))
-        )
+        self.on_range_changed.emit(IntList(items=list(self.chosen_items)))
         self.update_ui()
+
 
 class IntInputField(FormField):
     def __init__(self, *args, **kwargs) -> None:
@@ -586,9 +571,9 @@ def generate_single_widgets_from_model(
 
         if issubclass(field_type, float):
             if get_field_gt(value) is None:
-                    widget = FloatInputField(key, value, parent=parent)
+                widget = FloatInputField(key, value, parent=parent)
             else:
-                    widget = FloatSliderField(key, value, parent=parent)
+                widget = FloatSliderField(key, value, parent=parent)
 
         elif field_type == float:
             widget = FloatInputField(key, value, parent=parent)

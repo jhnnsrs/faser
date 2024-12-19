@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import griddata
 
+
 def polar_to_cartesian(polar_image):
     """
     Convert an image in polar coordinates to Cartesian coordinates.
@@ -8,10 +9,10 @@ def polar_to_cartesian(polar_image):
     :return: A 2D numpy array in Cartesian coordinates.
     """
     max_radius, num_angles = polar_image.shape
-    
+
     # Generate r and theta arrays
     r = np.linspace(0, max_radius, max_radius)
-    theta = np.linspace(0, 2*np.pi, num_angles)
+    theta = np.linspace(0, 2 * np.pi, num_angles)
     R, Theta = np.meshgrid(r, theta)
 
     # Convert polar (R, Theta) to Cartesian (X, Y)
@@ -23,7 +24,9 @@ def polar_to_cartesian(polar_image):
     z = polar_image.ravel()
 
     # Define a grid of Cartesian coordinates
-    xi, yi = np.linspace(x.min(), x.max(), polar_image.shape[1]), np.linspace(y.min(), y.max(), polar_image.shape[0])
+    xi, yi = np.linspace(x.min(), x.max(), polar_image.shape[1]), np.linspace(
+        y.min(), y.max(), polar_image.shape[0]
+    )
     xi, yi = np.meshgrid(xi, yi)
 
     # Interpolate using griddata
@@ -34,11 +37,7 @@ def polar_to_cartesian(polar_image):
 
 def polar_phase_mask(num_radii, num_angles):
     r = np.linspace(0, 1, num_radii)
-    theta = np.linspace(0, 2*np.pi, num_angles)
+    theta = np.linspace(0, 2 * np.pi, num_angles)
     R, Theta = np.meshgrid(r, theta)
     phase = (2 * np.pi * R) % (2 * np.pi)
     return phase
-
-
-
-

@@ -15,7 +15,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget
 from qtpy import QtGui, QtWidgets
 from scipy import ndimage
-from scipy import signal    
+from scipy import signal
 from slugify import slugify
 from superqt import (
     QDoubleRangeSlider,
@@ -205,12 +205,8 @@ class SampleTab(HelperTab):
         self.create_lines = QtWidgets.QPushButton("Grid")
         self.create_lines.clicked.connect(self.generate_lines)
 
-
         self.create_circles = QtWidgets.QPushButton("Circles")
         self.create_circles.clicked.connect(self.generate_circles)
-
-
-
 
         self.managed_widgets = generate_single_widgets_from_model(
             SpaceModel,
@@ -259,17 +255,28 @@ class SampleTab(HelperTab):
 
         self.viewer.add_image(M, name="Space")
 
-
     def generate_lines(self):
-        x = np.linspace(0, self.space_model.x_size - 1, num=int(self.space_model.x_size / self.space_model.dots))
-        y = np.linspace(0, self.space_model.y_size - 1, num=int(self.space_model.y_size / self.space_model.dots))
-        z = np.linspace(0, self.space_model.z_size - 1, num=int(self.space_model.z_size / self.space_model.dots))
+        x = np.linspace(
+            0,
+            self.space_model.x_size - 1,
+            num=int(self.space_model.x_size / self.space_model.dots),
+        )
+        y = np.linspace(
+            0,
+            self.space_model.y_size - 1,
+            num=int(self.space_model.y_size / self.space_model.dots),
+        )
+        z = np.linspace(
+            0,
+            self.space_model.z_size - 1,
+            num=int(self.space_model.z_size / self.space_model.dots),
+        )
 
         M = np.zeros(
             (
-            self.space_model.z_size,
-            self.space_model.y_size,
-            self.space_model.x_size,
+                self.space_model.z_size,
+                self.space_model.y_size,
+                self.space_model.x_size,
             )
         )
 
@@ -295,14 +302,22 @@ class SampleTab(HelperTab):
             )
         )
 
-        for radius in range(self.space_model.dots, min(self.space_model.x_size, self.space_model.y_size) // 2, self.space_model.dots):
+        for radius in range(
+            self.space_model.dots,
+            min(self.space_model.x_size, self.space_model.y_size) // 2,
+            self.space_model.dots,
+        ):
             rr, cc = draw.circle_perimeter(center_y, center_x, radius)
-            valid = (rr >= 0) & (rr < self.space_model.y_size) & (cc >= 0) & (cc < self.space_model.x_size)
+            valid = (
+                (rr >= 0)
+                & (rr < self.space_model.y_size)
+                & (cc >= 0)
+                & (cc < self.space_model.x_size)
+            )
             M[rr[valid], cc[valid]] = 1
 
         self.viewer.add_image(M, name="Concentric Circles")
 
-        
 
 class EffectiveModel(pydantic.BaseModel):
     Isat: float = pydantic.Field(default=0.1, lt=1, gt=0)
@@ -334,7 +349,6 @@ class EffectiveTab(HelperTab):
         self.show_alternate.setEnabled(False)
         self.show_alternate.clicked.connect(self.make_effective_psf_alternate)
 
-
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.show)
         hlayout.addWidget(self.show_alternate)
@@ -355,7 +369,6 @@ class EffectiveTab(HelperTab):
         else:
             self.effective_model.__setattr__(name, value)
 
-
     def make_effective_psf(self):
         I_sat = self.effective_model.Isat
         psf_layers = list(
@@ -370,20 +383,21 @@ class EffectiveTab(HelperTab):
         psf_layer_two = psf_layers[1]  # Depletion PSF
         new_psf = np.multiply(psf_layer_one.data, np.exp(-psf_layer_two.data / I_sat))
 
-
-
-
-        a_configs = psf_layer_one.metadata.get("configs", [psf_layer_one.metadata.get("config")])
-        b_configs = psf_layer_two.metadata.get("configs", [psf_layer_two.metadata.get("config")])
-
-
-
-
+        a_configs = psf_layer_one.metadata.get(
+            "configs", [psf_layer_one.metadata.get("config")]
+        )
+        b_configs = psf_layer_two.metadata.get(
+            "configs", [psf_layer_two.metadata.get("config")]
+        )
 
         return self.viewer.add_image(
             new_psf,
             name=f"Combined PSF {psf_layer_one.name} {psf_layer_two.name}",
-            metadata={"is_psf": True, "is_combination_of": a_configs + b_configs, "configs": a_configs + b_configs},
+            metadata={
+                "is_psf": True,
+                "is_combination_of": a_configs + b_configs,
+                "configs": a_configs + b_configs,
+            },
             colormap="viridis",
         )
 
@@ -471,19 +485,14 @@ class ConvolveWorker(QtCore.QObject):
         if self.image_data.ndim == 2:
             psf_data = self.psf_data[self.psf_data.shape[0] // 2, :, :]
 
-            con = signal.convolve(
-                self.image_data, psf_data, mode="same", method="fft"
-            )
+            con = signal.convolve(self.image_data, psf_data, mode="same", method="fft")
 
             self.finished.emit(con)
             return
 
-        con = signal.convolve(
-            self.image_data, self.psf_data, mode="same", method="fft"
-        )
+        con = signal.convolve(self.image_data, self.psf_data, mode="same", method="fft")
 
         self.finished.emit(con)
-
 
 
 class ConvolveTab(HelperTab):
@@ -580,11 +589,8 @@ class ConvolveTab(HelperTab):
                 self.show.setText("Convolve Image")
 
 
-
-
 class MetricModel(pydantic.BaseModel):
     pass
-
 
 
 def comparative_value(x, y):
@@ -602,16 +608,12 @@ def comparative_value(x, y):
         # round y to the power of x
         y = round(y, power + 1)
 
-
-
         return y
-    
+
     if isinstance(y, Enum):
         return y.name
-    else :
+    else:
         return y
-    
-
 
 
 def calculate_config_labels(configs: PSFConfig):
@@ -629,31 +631,20 @@ def calculate_config_labels(configs: PSFConfig):
             a = first_config.__getattribute__(field)
             b = config.__getattribute__(field)
 
-
             if a != b:
                 label += f"{field}: {comparative_value(a, b)}"
                 old_label += f"{field}: {comparative_value(b, a)}"
-
 
         labels.append(label)
         if first_label is None:
             first_label = old_label
 
-    
-
-
     return [first_label] + labels
-        
-
-
-
-
-    
 
 
 # Step 1: Create a worker class
 class MetricWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal(object,object)
+    finished = QtCore.pyqtSignal(object, object)
     progress = QtCore.pyqtSignal(int)
 
     def __init__(self, psf_data, configs):
@@ -663,14 +654,12 @@ class MetricWorker(QtCore.QObject):
 
     def run(self):
         """Long-running task."""
-        
+
         val = None
         if isinstance(self.psf_data, da.Array):
             data = self.psf_data.compute()
         else:
             data = self.psf_data
-
-
 
         if len(data.shape) == 5:
             # we have a batch of PSFs with 2 extra dimensions
@@ -680,9 +669,8 @@ class MetricWorker(QtCore.QObject):
 
             for i in range(data.shape[0]):
                 for y in range(data.shape[1]):
-                 
-                    max_values[i, y] = np.max(data[i, y, :, :])
 
+                    max_values[i, y] = np.max(data[i, y, :, :])
 
             val = max_values
             labels = labels
@@ -693,24 +681,21 @@ class MetricWorker(QtCore.QObject):
             labels = ["Single PSF"]
             val = np.array([vals])
             labels = labels
-        
+
         elif len(data.shape) == 4:
             # we have a batch of PSFs with 1 extra dimension
             labels = calculate_config_labels(self.configs)
-            vals =  np.array([np.max(data[i, :, :]) for i in range(data.shape[0])])
+            vals = np.array([np.max(data[i, :, :]) for i in range(data.shape[0])])
 
             val = vals
             labels = labels
-
 
         else:
             self.finished.emit(Exception("Invalid shape"))
             return
 
-
-
-
         self.finished.emit(val, labels)
+
 
 class MetricTab(HelperTab):
     def __init__(self, *args, **kwargs):
@@ -768,7 +753,10 @@ class MetricTab(HelperTab):
         self.show.setText("Calculating Metrics...")
 
         self.thread = QtCore.QThread()
-        self.worker = MetricWorker(psf_data, psf_layer.metadata.get("configs", [psf_layer.metadata.get("config")]))
+        self.worker = MetricWorker(
+            psf_data,
+            psf_layer.metadata.get("configs", [psf_layer.metadata.get("config")]),
+        )
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.on_worker_done)

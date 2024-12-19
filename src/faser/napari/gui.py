@@ -1,6 +1,7 @@
 import napari
 import numpy as np
 from magicgui import magicgui
+
 # from faser.generators.base import PSFConfig, mode, window
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 import numpy as np
@@ -42,7 +43,9 @@ viewer = None
     gaussian_beam_noise=detector_slider,
     detector_gaussian_noise=detector_slider,
 ) """
-def generate_psf_gui ():
+
+
+def generate_psf_gui():
     """viewer: napari.Viewer,
     Nx=31,  # discretization of image plane
     Ny=31,
@@ -108,14 +111,14 @@ def generate_psf_gui ():
         tilt_angle_degree=tilt_angle,
     )
  """
-    #psf = generate_psf(config)
-    #print(psf.max())
-    #return viewer.add_image(
+    # psf = generate_psf(config)
+    # print(psf.max())
+    # return viewer.add_image(
     #    psf,
     #    name=f"PSF {config.mode.name} {config} ",
     #    metadata={"is_psf": True, "config": config},
     #    colormap="viridis",
-    #)
+    # )
 
 
 @magicgui(
@@ -142,6 +145,8 @@ def make_effective_gui(viewer: napari.Viewer, I_sat=0.1):
 """ @magicgui(
     call_button="Convolve Image",
 ) """
+
+
 def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 
     psf_layer = next(
@@ -179,6 +184,8 @@ def convolve_image_gui(viewer: napari.Viewer, resize_psf=0):
 """ @magicgui(
     call_button="Generate Space",
 ) """
+
+
 def generate_space(
     viewer: napari.Viewer, x_size=100, y_size=100, z_size=20, dots: int = 50
 ):
@@ -197,6 +204,8 @@ def generate_space(
 """ @magicgui(
     call_button="Generate Space",
 ) """
+
+
 def calculate_fwhm(viewer: napari.Viewer):
 
     psf_layer = next(
