@@ -23,7 +23,11 @@ export default defineConfig({
                 items: [
                     // Each item here is one entry in the navigation menu.
                     { label: 'First Steps', slug: 'guides/introduction' },
-                ],
+                ],   
+            },
+            {
+                label: 'Installation',
+                autogenerate: { directory: 'installation' },
             },
             {
                 label: 'Reference',
