@@ -6,6 +6,8 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
+    site: 'https://jhnnsrs.github.io',
+    base: 'faser',
     integrations: [starlight({
         title: 'Faser',
         social: {
