@@ -1,16 +1,16 @@
 import sys
 import typing
-from PyQt5.QtWidgets import QWidget
+
 import matplotlib
 import numpy as np
+from qtpy.QtWidgets import QWidget
 
 matplotlib.use("Qt5Agg")
 
-from PyQt5 import QtCore, QtWidgets
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.cm import coolwarm, turbo, viridis
 from matplotlib.figure import Figure
-from matplotlib.cm import coolwarm, viridis, turbo
+from qtpy import QtCore, QtWidgets
 
 
 class MplCanvas(FigureCanvasQTAgg):

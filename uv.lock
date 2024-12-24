@@ -255,7 +255,7 @@ name = "click"
 version = "8.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "platform_system == 'Windows'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/96/d3/f04c7bfcf5c1862a2a5b845c6b2b360488cf47af55dfa79c98f6a6bf98b5/click-8.1.7.tar.gz", hash = "sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de", size = 336121 }
 wheels = [
@@ -454,7 +454,7 @@ wheels = [
 
 [[package]]
 name = "faser"
-version = "0.3.2"
+version = "0.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
@@ -462,6 +462,8 @@ dependencies = [
     { name = "psygnal" },
     { name = "pydantic" },
     { name = "python-slugify" },
+    { name = "qtpy" },
+    { name = "superqt" },
     { name = "tifffile" },
 ]
 
@@ -492,8 +494,10 @@ requires-dist = [
     { name = "pydantic", specifier = ">2" },
     { name = "pyqt5", marker = "extra == 'full'", specifier = ">=5.15.11" },
     { name = "python-slugify", specifier = ">=8.0.4" },
+    { name = "qtpy", specifier = ">=2.4.2" },
     { name = "rich-click", marker = "extra == 'cli'", specifier = ">=1.8.3" },
     { name = "rich-click", marker = "extra == 'full'", specifier = ">=1.8.3" },
+    { name = "superqt", specifier = ">=0.6.7" },
     { name = "tifffile", specifier = ">=2024.8.30" },
 ]
 
@@ -687,7 +691,7 @@ name = "ipykernel"
 version = "6.29.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appnope", marker = "platform_system == 'Darwin'" },
+    { name = "appnope", marker = "sys_platform == 'darwin'" },
     { name = "comm" },
     { name = "debugpy" },
     { name = "ipython" },
@@ -1116,7 +1120,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pygments" },
     { name = "pyopengl" },
-    { name = "pywin32", marker = "platform_system == 'Windows'" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "pyyaml" },
     { name = "qtpy" },
     { name = "scikit-image", extra = ["data"] },
@@ -2453,7 +2457,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "platform_system == 'Windows'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
 wheels = [

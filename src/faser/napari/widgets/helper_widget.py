@@ -6,16 +6,17 @@ from typing import Any, Callable, List, Type
 
 import dask
 import dask.array as da
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import napari
 import numpy as np
 import pydantic
+import skimage.draw as draw
 import tifffile
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QWidget
-from qtpy import QtGui, QtWidgets
-from scipy import ndimage
-from scipy import signal
+from matplotlib.figure import Figure
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import QWidget
+from scipy import ndimage, signal
 from slugify import slugify
 from superqt import (
     QDoubleRangeSlider,
@@ -24,8 +25,7 @@ from superqt import (
     QLabeledDoubleSlider,
 )
 from superqt.utils import thread_worker
-import matplotlib.pyplot as plt
-import skimage.draw as draw
+
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
 from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
@@ -50,8 +50,8 @@ class HelperTab(QtWidgets.QWidget):
 
 # Step 1: Create a worker class
 class ExportWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int)
+    finished = Signal()
+    progress = Signal(int)
 
     def __init__(self, layers, export_dir):
         super().__init__()
@@ -459,8 +459,8 @@ class ConvolveModel(pydantic.BaseModel):
 
 # Step 1: Create a worker class
 class ConvolveWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal(object)
-    progress = QtCore.pyqtSignal(int)
+    finished = Signal(object)
+    progress = Signal(int)
 
     def __init__(self, image_data, psf_data):
         super().__init__()
@@ -644,8 +644,8 @@ def calculate_config_labels(configs: PSFConfig):
 
 # Step 1: Create a worker class
 class MetricWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal(object, object)
-    progress = QtCore.pyqtSignal(int)
+    finished = QtCore.Signal(object, object)
+    progress = QtCore.Signal(int)
 
     def __init__(self, psf_data, configs):
         super().__init__()

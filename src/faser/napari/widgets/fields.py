@@ -15,9 +15,9 @@ from annotated_types import Ge, Gt, Le, Lt
 # from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QWidget
-from qtpy import QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import QWidget
 from superqt import QEnumComboBox  # QDoubleRangeSlider,
 from superqt import QLabeledDoubleRangeSlider, QLabeledDoubleSlider
 
@@ -44,8 +44,8 @@ def get_field_lt(field: FieldInfo) -> float:
 
 
 class FormField(QtWidgets.QWidget):
-    on_child_value_changed = QtCore.pyqtSignal(str, object)
-    on_child_range_value_changed = QtCore.pyqtSignal(str, object)
+    on_child_value_changed = Signal(str, object)
+    on_child_range_value_changed = Signal(str, object)
 
     def __init__(
         self, key: str, field: FieldInfo, toggable: bool = True, *args, **kwargs
@@ -220,7 +220,7 @@ class IntList(pydantic.BaseModel):
 
 
 class FloatRangeStepSliderField(QtWidgets.QWidget):
-    on_range_changed = QtCore.pyqtSignal(object)
+    on_range_changed = Signal(object)
 
     def __init__(self, *args, gt=None, lt=None, steps=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -279,7 +279,7 @@ class IntRange(pydantic.BaseModel):
 
 
 class FloatRangeArrayField(QtWidgets.QWidget):
-    on_range_changed = QtCore.pyqtSignal(object)
+    on_range_changed = Signal(object)
 
     def __init__(self, default, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -333,7 +333,7 @@ class FloatRangeArrayField(QtWidgets.QWidget):
 
 
 class IntRangeStepSliderField(QtWidgets.QWidget):
-    on_range_changed = QtCore.pyqtSignal(object)
+    on_range_changed = Signal(object)
 
     def __init__(self, *args, gt=None, lt=None, steps=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -392,7 +392,7 @@ class FloatSliderField(FormField):
 
 
 class IntRangeArrayField(QtWidgets.QWidget):
-    on_range_changed = QtCore.pyqtSignal(object)
+    on_range_changed = Signal(object)
 
     def __init__(self, default, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -492,7 +492,7 @@ class OptionRange(pydantic.BaseModel):
 
 
 class MultiEnumField(QtWidgets.QWidget):
-    on_range_changed = QtCore.pyqtSignal(object)
+    on_range_changed = Signal(object)
 
     def __init__(self, *args, enum: Enum, **kwargs):
         super().__init__(*args, **kwargs)

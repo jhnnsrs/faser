@@ -1,6 +1,6 @@
 [project]
 name = "faser"
-version = "0.3.3"
+version = "0.3.4"
 description = "Faser is a tool for vectorial psf simulation"
 authors = [
     { name = "Johannes Roos", email = "jhnnsrs@gmail.com" }
@@ -12,6 +12,8 @@ dependencies = [
     "python-slugify>=8.0.4",
     "tifffile>=2024.8.30",
     "psygnal>=0.11.1",
+    "qtpy>=2.4.2",
+    "superqt>=0.6.7",
 ]
 classifiers = [
     "Framework :: napari",

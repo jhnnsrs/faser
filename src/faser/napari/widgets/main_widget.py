@@ -15,10 +15,9 @@ import napari
 
 # from pydantic.types import ConstrainedFloat
 import numpy as np
-from PyQt5 import QtCore
 
 # from PyQt5.QtWidgets import QWidget
-from qtpy import QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtWidgets import QStyle
 
 # from superqt import QDoubleRangeSlider, QLabeledDoubleRangeSlider, QLabeledDoubleSlider
