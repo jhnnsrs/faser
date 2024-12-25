@@ -1,8 +1,12 @@
 [project]
 name = "faser"
-version = "0.3.5"
+version = "0.3.6"
 description = "Faser is a tool for vectorial psf simulation"
 authors = [
+    { name = "Johannes Roos", email = "jhnnsrs@gmail.com" }
+    { name = "Stephane Bancelin", email = "stephane.bancelin@cnrs.fr" }
+]
+maintainers = [
     { name = "Johannes Roos", email = "jhnnsrs@gmail.com" }
 ]
 dependencies = [
@@ -16,15 +20,21 @@ dependencies = [
     "superqt>=0.6.7",
 ]
 classifiers = [
-    "Framework :: napari",
+    "Framework :: Napari",
+    "Programming Language :: Python"
 ]
 readme = "README.md"
+description = "Faser is a tool for vectorial psf simulation"
 requires-python = ">=3.9, <3.13"
 license = "MIT"
 keywords = ["napari", "psf", "simulation", "faser", "vectorial"]
-homepage = "https://jhnnsrs.github.io/faser"
-repository = "https://github.com/jhnnsrs/faser"
-documentation = "https://jhnnsrs.github.io/faser"
+
+
+
+[project.urls]
+Documentation = "https://jhnnsrs.github.io/faser"
+Repository =  "https://github.com/jhnnsrs/faser"
+Source Code = "https://github.com/jhnnsrs/faser
 
 [project.optional-dependencies]
 full = [

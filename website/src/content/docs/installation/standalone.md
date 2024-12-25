@@ -1,12 +1,14 @@
 ---
 title: Standalone
-sidebar_label: "as a Napari Plugin"
+sidebar_label: "Standalone"
 description: The easy route
 ---
 
 In this guide, we will walk you through the process of installing faser as as standalone application. This is the easiest way to get started with faser, as it allows you to use the software directly within the Napari environment.
 
 ## Pre-requisites
+
+
 
 
 
