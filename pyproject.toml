@@ -30,7 +30,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 readme = "README.md"
-description = "Faser is a tool for vectorial psf simulation"
 requires-python = ">=3.9, <3.13"
 license =  { file = "LICENSE", name = "MIT" }
 keywords = ["napari", "psf", "simulation", "faser", "vectorial"]
