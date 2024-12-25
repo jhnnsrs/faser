@@ -1,0 +1,72 @@
+---
+title: Faser as Napari Plugin
+sidebar_label: "as a Napari Plugin"
+description: The easy route
+---
+
+import { Aside , Steps} from '@astrojs/starlight/components';
+
+
+In this guide, we will walk you through the process of installing faser as a Napari plugin. This is the easiest way to get started with faser, as it allows you to use the software directly within a bundled Napari application.
+
+<Aside type="tip" title="Who is this guide for?"> 
+
+This guide is tailored to users who are new to Napari (and of course faser) and have little to no experience with Python or package management. 
+
+</Aside>
+
+<Steps>
+
+1. ##### Download Napari
+
+    In order to install faser as a Napari plugin, you will first need to download and install Napari. We recommend using the bundled version of Napari as it gets you up and running quickly, without
+    any knowledge of Python or package management.
+
+    <iframe  width="100%" class="aspect-[16/9]" src="https://www.youtube.com/embed/tT6gTCvtffU?si=GcwbXpT6ol0DYaC2" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    
+    :::note
+
+    When downloading Napari make sure you are downloading the correct version for your operating system. Windows users should download the 64-bit version (x86_64) *exe* and Mac users should download the *pkg* versions that correspond to their chip architecture (i.e `arm64` for M1 Macs or `x86_64` for Intel based
+    chips).
+
+    :::
+
+2. #### Install Napari
+
+    Once you have downloaded Napari, you can easily install it by following the installer. The installer will guide you through the process of installing Napari on your system.
+    Here is a video that shows you how this installation process looks like:
+
+    <iframe width="100%" class="aspect-[16/9]" src="https://www.youtube.com/embed/QdRNQ7m5GH4?si=f-L40f52wr64KK1g" title="Instlalation" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+    The installation process is straightforward and should take only a few minutes to complete. As illustrated in the video, the last step of the installation might require a little longer 
+    to complete, as Napari will download and install additional dependencies.
+
+3. #### Install Faser
+
+    Almost there! Now that you have Napari installed, you can install faser as a plugin. To do this we would advice you to use the Napari plugin manager. Here is a video that shows you how to install faser as a Napari plugin:
+    **However**, currently Napari's plugin hub is not entirely functional, so we would recommand you to install faser using the napari console. Here is a video that shows you how to install faser as a Napari plugin using the Napari console:
+
+
+    <iframe  width="100%" class="aspect-[16/9]"  src="https://www.youtube.com/embed/Uhx9BAOdFCI?si=CayMI0G-PDywoAOO&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    When installing faser using the Napari console, you will need to run the following command:
+
+    ```bash
+    !pip install "faser==0.3.7"
+    ```
+
+    :::note
+    Make sure to run this command in the Napari console, not in the terminal or command prompt. Also make sure to include the `!` at the beginning of the command.
+    as well as the `""` around the package name and version.
+    :::
+
+
+4. #### Launch Faser
+
+    Faser should now appear in the Napari plugin list. You can launch faser by selecting and adding both the "Helper" and "Main" plugins to the Napari viewer. 
+    Head over to the usage guide to learn how to use faser within Napari.
+
+
+
+</Steps>
+

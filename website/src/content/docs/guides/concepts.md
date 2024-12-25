@@ -1,5 +1,5 @@
 ---
-title: Installation
+title: Concepts
 description: A brief introduction to the faser software package.
 ---
 

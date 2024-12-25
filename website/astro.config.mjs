@@ -23,6 +23,7 @@ export default defineConfig({
                 items: [
                     // Each item here is one entry in the navigation menu.
                     { label: 'First Steps', slug: 'guides/introduction' },
+                    { label: "Concepts", slug: "guides/concepts"}
                 ],   
             },
             {
