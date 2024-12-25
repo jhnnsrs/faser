@@ -20,7 +20,7 @@ dependencies = [
     "superqt>=0.6.7",
 ]
 classifiers = [
-    "Framework :: Napari",
+    "Framework :: napari",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -39,7 +39,7 @@ keywords = ["napari", "psf", "simulation", "faser", "vectorial"]
 [project.urls]
 "Bug Tracker" = "https://jhnnsrs.github.io/faser/issues"
 "Documentation" = "https://jhnnsrs.github.io/faser"
-"Source Code" = "https://github.com/jhnnsrs/faser
+"Source Code" = "https://github.com/jhnnsrs/faser"
 
 [project.optional-dependencies]
 full = [
