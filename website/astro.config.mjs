@@ -1,17 +1,21 @@
 // @ts-check
 import starlight from '@astrojs/starlight';
-import { defineConfig } from 'astro/config';
-
 import tailwind from '@astrojs/tailwind';
+import { defineConfig } from 'astro/config';
+import rehypeMathjax from 'rehype-mathjax';
+import remarkMath from 'remark-math';
 
 // https://astro.build/config
 export default defineConfig({
     site: 'https://jhnnsrs.github.io',
     base: 'faser',
     integrations: [starlight({
-        title: 'Faser',
+        title: 'faser',
         social: {
             github: 'https://github.com/jhnnsrs/faser',
+        },
+        editLink: {
+            baseUrl: "https://github.com/jhnnsrs/faser/edit/master/website/",
         },
         customCss: [
             // Path to your Tailwind base styles:
@@ -22,8 +26,8 @@ export default defineConfig({
                 label: 'Guides',
                 items: [
                     // Each item here is one entry in the navigation menu.
-                    { label: 'First Steps', slug: 'guides/introduction' },
-                    { label: "Concepts", slug: "guides/concepts"}
+                    { label: 'What is faser?', slug: 'guides/introduction' },
+                    { label: "Theory", slug: "guides/concepts"}
                 ],   
             },
             {
@@ -31,8 +35,8 @@ export default defineConfig({
                 autogenerate: { directory: 'installation' },
             },
             {
-                label: 'Reference',
-                autogenerate: { directory: 'reference' },
+                label: 'Usage',
+                autogenerate: { directory: 'usage' },
             },
         ],
 		}), tailwind(
@@ -40,4 +44,7 @@ export default defineConfig({
                 applyBaseStyles: false,
             }
         )],
+        markdown: {remarkPlugins: [remarkMath],
+            rehypePlugins: [rehypeMathjax],
+        },
 });

@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.MathJax svg {
+    display: inline;
+    margin: 0 auto;
+    vertical-align: middle;
+}
+
+.data-footnote-backref {
+    content: "..";
+}

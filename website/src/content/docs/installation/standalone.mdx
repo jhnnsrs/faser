@@ -1,0 +1,76 @@
+---
+title: Standalone
+sidebar_label: "Standalone"
+description: The easy route
+---
+import { Aside , Steps} from '@astrojs/starlight/components';
+
+In this guide, we will walk you through the process of installing faser as as standalone application. This installation method is suitable for users
+who want to have a prepackaged faser application that can be run from the command line and from their python environment of choice.
+
+
+<Aside type="tip" title="Who is this guide for?"> 
+
+This guide is tailored to users who have a basic understaning of Python and are familiar with pip (or another package manager).
+
+</Aside>
+
+#### Pre-requisites
+
+In order to install faser as a standalone application, you will need the following:
+
+- Python 3.9 or higher
+- A package manager (pip, conda, poetry, uv)
+
+#### Installation
+
+The installation process for faser as a standalone application is quite simple. Follow the steps below to get started.
+
+<Steps>
+
+1. ##### Create a python environment
+
+    Using a tool like `conda, poetry or uv` (use uv, it's the best), create a virtual environment in the directory where you want to install faser.
+
+    ```bash
+    python -m venv .venv
+    ```
+
+2. ###### Activate the environment
+
+    Activate the virtual environment using the following command on linux/mac
+
+    ```bash
+    source .venv/bin/activate
+    ```
+
+    or on windows
+
+    ```bash
+    .venv\Scripts\activate
+    ```
+
+2. ##### Install faser and napari 
+
+    install Faser using
+
+    ```bash
+    pip install "napari[pyqt5]" "faser[cli]"
+    ```
+
+3. ##### Run qtfaser
+
+    Run the following command (inside your **activated** virtual environemnt) to start the standalone application
+
+    ```bash
+    qtfaser
+    ```
+
+</Steps>
+
+
+
+
+
+
+

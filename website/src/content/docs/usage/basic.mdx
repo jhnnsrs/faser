@@ -1,0 +1,78 @@
+---
+title:  Basics (GUI)
+description: An example of how to use faser to simulate a PSF.
+---
+import { Aside , Steps, FileTree} from '@astrojs/starlight/components';
+
+
+In this example, we will demonstrate how to use faser to simulate the point spread function (PSF) of an optical microscope, using a 1.2 NA objective lens with a 488 nm excitation wavelength,
+and explore the impact of two different beam profiles on the PSF shape.
+
+<Aside type="tip" title="Prerequisites">
+
+Before you begin, make sure you have faser installed on your system. If you haven't installed faser yet, you can follow the installation guide [here](/faser/installation/terminal).
+
+</Aside>
+
+## Video Tutorial
+
+<iframe class="w-full aspect-[16/9]" src="https://www.youtube.com/embed/8vVOKhL5z4w?si=42Nl28EgEOFIkXvY&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+## Step by Step Guide
+
+
+<Steps>
+
+1. ### Run faser
+
+   To start faser, open Napari and an start the faser plugin widgets through the Napari plugin manager. In this example we will only use the faser Generator
+   plugin, that allows us to generate PSFs for different optical systems.
+
+2. ### Familiarize yourself with the GUI
+
+   The generator plugin is divided into different tabs, each corresponding to a different aspect of the PSF simulation. The main tabs are:
+
+   - **Simulation**: Here you can set specific simulation parameters such as the sample intervals, the observation length and the normalization method.
+   - **Geometry**: This tab allows you to set the optical parameters of the system, such as the Coverslip thickness and tilt, the Immersion media properties.
+                    and Cranial window effects for in vivo imaging.
+
+   - **Beam**: Here you can set the beam properties, such as the beam profile, as well as the intensity profiles, and phase masks.
+   - **Aberration**: This tab allows you to introduce aberrations to the system, such as spherical aberration, coma, astigmatism.
+
+3. ### Set the simulation parameters
+
+    In this example to simulate the PSF of a 1.2 NA objective lens with a 488 nm excitation wavelength, we will set the following parameters:
+
+    - **Geometry**: In the geometry tab, set the objective NA to 1.2 
+    - **Beam**: In the beam tab, set the wavelength to 488 nm
+
+    :::note
+
+    You can also set other parameters such as the coverslip thickness and tilt, the immersion media properties, and the cranial window effects to simulate the PSF under different experimental conditions. If you messed up, you can always reset the parameters by clicking the reset button.
+
+    :::
+
+4. ### Generate the PSF
+
+   Press the "Generate" button to start the PSF simulation. The PSF will be displayed in the Napari viewer, once the simulation is complete, and
+   you can utilize Napari to explore the PSF shape 
+
+5. ### Explore the Impact 
+
+   To explore the impact of different beam profiles on the PSF shape, you can change the beam profile in the beam tab and re-generate the PSF. 
+   For example, you can switch between a Gaussian and a Donut beam profile to see how the PSF shape changes.
+
+6. ### Save the PSF
+
+   Once you are satisfied with the PSF simulation, you can save the PSF as a TIFF file by clicking the "Save" button in the Napari viewer.
+   This will save the PSF as a 3D TIFF file that can be used for further analysis or visualization, as well will it save the
+   parameters used for the simulation in a JSON file.
+
+   <FileTree >
+   - psf_config.json
+   - psf.tif
+   </FileTree>
+
+
+</Steps>

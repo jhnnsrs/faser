@@ -1,0 +1,218 @@
+---
+title: CLI
+sidebar_label: "Standalone"
+description: The easy route
+---
+import { Aside , Steps} from '@astrojs/starlight/components';
+import { FileTree } from '@astrojs/starlight/components';
+
+
+
+In this guide, we will walk you through the process of installing faser as as cli application. 
+
+<Aside type="tip" title="Who is this guide for?"> 
+
+CLI Usage is tailored to users that want to integrate faser into their own applications or workflows and are comfortable with the command line interface.
+To install the standalone version of faser, you need to have a basic understanding of Python and package management tools like pip.
+
+</Aside>
+
+## Pre-requisites
+
+In order to install faser as a CLI application, you will need the following:
+
+- Python 3.9 or higher
+- A package manager (pip, conda, poetry, uv)
+
+## Installation
+
+The installation process for faser is straightforward. Follow the steps below to get started.
+<Steps>
+
+1. ### Create a python environment
+
+    Using a tool like `conda, poetry or uv` (use uv, it's the best), create a virtual environment in the directory where you want to install faser.
+
+    ```bash
+    python -m venv .venv
+    ```
+
+2. ### Activate the environment
+
+    Activate the virtual environment using the following command on linux/mac
+
+    ```bash
+    source .venv/bin/activate
+    ```
+
+    or on windows
+
+    ```bash
+    .venv\Scripts\activate
+    ```
+
+2. ### Install faser and napari 
+
+    install Faser using
+
+    ```bash
+    pip install "faser[cli]"
+    ```
+
+    :::note
+
+    The `faser[cli]` option installs faser with the command line interface extras. This will allow you to use faser from the command line.
+    Please note that the `napari[pyqt5]` option is not required for the cli version of faser. 
+
+    :::
+
+3. ### Run faser
+
+    Run the following command (inside your **activated** virtual environemnt) to start the standalone application
+
+    ```bash
+    faser
+    ```
+
+</Steps>
+
+## General Usage 
+
+Once you have installed faser, you can use the command line interface to generate PSFs for your optical system.
+
+```bash
+faser --help
+```
+
+This will display the available commands and options for faser. You can use these commands to generate PSFs with different parameters and save them to disk for further analysis.
+
+```bash
+➜  ~ faser --help
+                                                                                
+ Usage: faser [OPTIONS]                                                         
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --config                     FILENAME         Path to a JSON file            │
+│ --detector_gaussian_noise    FLOAT            Detector Gaussian noise        │
+│ --gaussian_beam_noise        FLOAT            Gaussian_beam noise            │
+│ --add_noise                  NOISE                                           │
+│ --loaded_phase_mask          OPTIONAL         Loaded Phasemak                │
+│ --p                          FLOAT            Ratio between Donut (p) and    │
+│                                               Bottle (1-p) intensity         │
+│ --mask_offset_y              FLOAT            Y offset of the phase mask in  │
+│                                               regard to pupil center         │
+│ --mask_offset_x              FLOAT            X offset of the phase mask in  │
+│                                               regard to pupil center         │
+│ --ring_radius                FLOAT            Radius of the ring phase mask  │
+│                                               (on unit pupil)                │
+│ --rc                         FLOAT            Ring charge (should be odd to  │
+│                                               produce bottle)                │
+│ --vc                         FLOAT            Vortex charge (should be       │
+│                                               integer to produce donut)      │
+│ --epsilon                    FLOAT            Ellipticity of the             │
+│                                               polarization (in °)            │
+│ --psi                        FLOAT            Direction of the polarization  │
+│                                               (in °)                         │
+│ --ampl_offset_y              FLOAT            Y offset of the amplitude      │
+│                                               profile in regard to pupil     │
+│                                               center                         │
+│ --ampl_offset_x              FLOAT            X offset of the amplitude      │
+│                                               profile in regard to pupil     │
+│                                               center                         │
+│ --waist                      FLOAT            Diameter of the input beam on  │
+│                                               the objective pupil (in µm)    │
+│ --wavelength                 FLOAT            Wavelength of light (in µm)    │
+│ --polarization               POLARIZATION                                    │
+│ --mode                       MODE                                            │
+│ --aberration_offset_y        FLOAT            Y offset of the aberration     │
+│                                               function in regard to pupil    │
+│                                               center                         │
+│ --aberration_offset_x        FLOAT            X offset of the aberration     │
+│                                               function in regard to pupil    │
+│                                               center                         │
+│ --a24                        ABERRATIONFLOAT  Secondary spherical            │
+│ --a12                        ABERRATIONFLOAT  Primary spherical              │
+│ --a9                         ABERRATIONFLOAT  Oblique Trefoil                │
+│ --a8                         ABERRATIONFLOAT  Horizontal Coma                │
+│ --a7                         ABERRATIONFLOAT  Vertical Coma                  │
+│ --a6                         ABERRATIONFLOAT  Vertical Trefoil               │
+│ --a5                         ABERRATIONFLOAT  Vertical Astigmatism           │
+│ --a4                         ABERRATIONFLOAT  Defocus                        │
+│ --a3                         ABERRATIONFLOAT  Oblique Astigmatism            │
+│ --a2                         ABERRATIONFLOAT  Horizontal Tilt                │
+│ --a1                         ABERRATIONFLOAT  Vertical Tilt                  │
+│ --a0                         ABERRATIONFLOAT  Piston                         │
+│ --wind_offset_y              FLOAT            Y offset of the cranial window │
+│                                               in regard to pupil center      │
+│ --wind_offset_x              FLOAT            X offset of the cranial window │
+│                                               in regard to pupil center      │
+│ --wind_depth                 FLOAT            Depth of the cranial window    │
+│                                               (in mm)                        │
+│ --wind_radius                FLOAT            Diameter of the cranial window │
+│                                               (in mm)                        │
+│ --window                     WINDOW                                          │
+│ --tilt                       FLOAT            Tilt angle of the coverslip    │
+│                                               (in °)                         │
+│ --depth                      FLOAT            Imaging depth in the sample    │
+│                                               (in µm)                        │
+│ --collar                     FLOAT            Correction collar setting to   │
+│                                               compensate coverslip thickness │
+│ --thickness                  FLOAT            Thickness of the coverslip (in │
+│                                               µm)                            │
+│ --n3                         FLOAT            Refractive index of the sample │
+│ --n2                         FLOAT            Refractive index of the        │
+│                                               coverslip                      │
+│ --n1                         FLOAT            Refractive index of the        │
+│                                               immersion medium               │
+│ --wd                         FLOAT            Working Distance of the        │
+│                                               objective lens (in µm)         │
+│ --na                         FLOAT            Numerical Aperture of          │
+│                                               Objective Lens                 │
+│ --normalize                  NORMALIZE                                       │
+│ --nphi                       INTEGER          Integration sted of the        │
+│                                               aximutal angle on the pupil    │
+│ --ntheta                     INTEGER          Integration sted of the        │
+│                                               focalization angle             │
+│ --nz                         INTEGER          Discretization of Z axis -     │
+│                                               better be odd number for       │
+│                                               perfect 0                      │
+│ --nxy                        INTEGER          Discretization of image plane  │
+│                                               - better be odd number for     │
+│                                               perfect 0                      │
+│ --l_obs_z                    FLOAT            Observation scale in Z (in µm) │
+│ --l_obs_xy                   FLOAT            Observation scale in XY (in    │
+│                                               µm)                            │
+│ --help                                        Show this message and exit.    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+
+This will display the available commands and options for faser. You can use these commands to generate PSFs with different parameters and save them to disk for further analysis.
+
+
+### Example
+
+To generate a PSF with a vertical tilt aberration of 0.1 and a numerical aperture of 1.4, you can run the following command:
+
+
+```bash
+faser --a1=0.1 --na=1.4
+```
+
+This command will generate a PSF with a vetrical tilt aberration of 0.1 and a numerical aperture of 1.4, and will output
+the PSF (and all of the parameters of the optical properties) to the current working directory.
+
+<FileTree>
+- folder_where_you_ran_the_cli
+    - psf_config.JSON
+    - psf.tiff
+</FileTree>
+
+
+
+
+
+
+
+
+
