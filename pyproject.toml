@@ -18,6 +18,7 @@ dependencies = [
     "psygnal>=0.11.1",
     "qtpy>=2.4.2",
     "superqt>=0.6.7",
+    "rich-click>=1.8.5",
 ]
 classifiers = [
     "Framework :: napari",
@@ -64,15 +65,7 @@ faser = 'faser:napari.yaml'
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.rye]
-managed = true
-dev-dependencies = [
-    "pytest>=8.3.3",
-    "napari>=0.5.3",
-    "pyqt5>=5.15.11",
-    "rich-click>=1.8.3",
-    "numba>=0.60.0",
-]
+
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -84,4 +77,5 @@ packages = ["src/faser", "src/faser/napari.yaml"]
 dev-dependencies = [
     "napari>=0.5.5",
     "pytest>=8.3.4",
+    "python-semantic-release>=10.1.0",
 ]
