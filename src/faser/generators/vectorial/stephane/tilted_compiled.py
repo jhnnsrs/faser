@@ -67,10 +67,13 @@ def Fresnel_coeff(s: PSFConfig, ca, c2a, c2at, c3a):
     r1s = (s.n1 * ca - s.n2 * c2a) / (s.n1 * ca + s.n2 * c2a)
     r2s = (s.n2 * c2a - s.n3 * c3a) / (s.n2 * c2a + s.n3 * c3a)
 
+    # Single-pass phase through the coverslip, minus the design (collar) phase
     beta = s.k0 * s.n2 * (s.Thickness * c2a - s.Collar * c2at)
+    # Round-trip phase for the multiple-reflection (Airy) term: physical thickness only
+    beta_phys = s.k0 * s.n2 * s.Thickness * c2a
 
-    Tp = t2p * t1p * np.exp(1j * beta) / (1 + r1p * r2p * np.exp(2 * 1j * beta))
-    Ts = t2s * t1s * np.exp(1j * beta) / (1 + r1s * r2s * np.exp(2 * 1j * beta))
+    Tp = t2p * t1p * np.exp(1j * beta) / (1 + r1p * r2p * np.exp(2j * beta_phys))
+    Ts = t2s * t1s * np.exp(1j * beta) / (1 + r1s * r2s * np.exp(2j * beta_phys))
 
     return Tp, Ts
 
@@ -244,7 +247,7 @@ def calculate_electric_field(s: PSFConfig) -> np.array:
     x2 = np.linspace(-s.L_obs_XY, s.L_obs_XY, s.Nxy)
     y2 = np.linspace(-s.L_obs_XY, s.L_obs_XY, s.Nxy)
     z2 = np.linspace(-s.L_obs_Z, s.L_obs_Z, s.Nz)
-    [X2, Y2, Z2] = np.meshgrid(x2, y2, z2 + s.Dfoc / s.L_obs_Z)
+    [X2, Y2, Z2] = np.meshgrid(x2, y2, z2 + s.Dfoc)
 
     # Initialization electric field near focus
     Ex2 = 0
@@ -256,7 +259,7 @@ def calculate_electric_field(s: PSFConfig) -> np.array:
     theta = 0
     phi = 0
     for p in range(0, s.Ntheta):
-        theta = p * s.deltatheta
+        theta = (p + 0.5) * s.deltatheta  # midpoint rule
         for q in range(0, s.Nphi):  # TODO check the -1
             phi = q * s.deltaphi
 
@@ -265,27 +268,27 @@ def calculate_electric_field(s: PSFConfig) -> np.array:
             si = np.sin(phi)
             sa = np.sin(theta)
 
-            # refracted angles
-            theta2 = np.arcsin((s.n1 / s.n2) * np.sin(theta))
-            c2a = np.cos(theta2)
-            theta3 = np.arcsin((s.n2 / s.n3) * np.sin(theta2))
-            c3a = np.cos(theta3)
-            s3a = np.sin(theta3)
+            # refracted angles (Snell); cosines via complex sqrt so that
+            # supercritical angles become evanescent instead of NaN
+            s2a = (s.n1 / s.n2) * sa
+            c2a = np.sqrt(1 - s2a**2 + 0j)
+            s3a = (s.n2 / s.n3) * s2a
+            c3a = np.sqrt(1 - s3a**2 + 0j)
 
             # Cartesian coordinate on pupil
             x_pup = s.WD * sa * ci
             y_pup = s.WD * sa * si
 
-            # Rotation and projection of the pupil function
-            x_pup_t = s.cg * x_pup - s.sg * s.WD
+            # Rotation of the ray direction by the coverslip tilt (about y)
+            x_pup_t = s.cg * x_pup - s.sg * s.WD * ca
             y_pup_t = y_pup
-            # Spherical coordinate
-            theta_t = np.arcsin(np.sqrt(x_pup_t**2 + y_pup_t**2) / s.WD)
-            cat = np.cos(theta_t)
+            # Spherical coordinate in the objective frame
+            cat = np.clip(sa * ci * s.sg + ca * s.cg, -1.0, 1.0)
+            theta_t = np.arccos(cat)
 
             # refracted tilted angles
-            theta2_t = np.arcsin((s.n1 / s.n2) * np.sin(theta_t))
-            c2at = np.cos(theta2_t)
+            s2at = (s.n1 / s.n2) * np.sin(theta_t)
+            c2at = np.sqrt(1 - s2at**2 + 0j)
 
             if theta_t <= s.alpha_eff:
 
