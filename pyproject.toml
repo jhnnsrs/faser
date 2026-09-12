@@ -62,16 +62,55 @@ qtfaser = 'faser.cli.qtmain:main'
 faser = 'faser:napari.yaml'
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
 
+[tool.maturin]
+# Mixed Rust/Python project: the crate in ./rust is compiled to faser._core,
+# the Python package lives in ./src/faser.
+manifest-path = "rust/Cargo.toml"
+python-source = "src"
+module-name = "faser._core"
+features = ["pyo3/extension-module"]
+include = [{ path = "src/faser/napari.yaml", format = ["sdist", "wheel"] }]
 
+[tool.semantic_release]
+# Same flow as jhnnsrs/mikro (PSR GitHub Action, conventional commits, GitHub
+# Release + `uv publish`), except that the version is bumped in pyproject.toml
+# and committed: maturin reads the version from this file, not from git tags,
+# and the per-platform wheel jobs check out the release tag to build.
+version_toml = ["pyproject.toml:project.version"]
+allow_zero_version = true
+# The PSR action runs in a container without cargo, so only the sdist is built
+# here (it needs no compiler). Wheels come from the matrix job in publish.yml.
+build_command = """
+    python -m pip install 'uv>=0.7.12'
+    uv build --sdist
+"""
 
-[tool.hatch.metadata]
-allow-direct-references = true
+# main -> stable X.Y.Z. next -> prereleases X.Y.Z-rc.N. N.x -> maintenance.
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/faser", "src/faser/napari.yaml"]
+[tool.semantic_release.branches.next]
+match = "next"
+prerelease = true
+prerelease_token = "rc"
+
+[tool.semantic_release.branches.maintenance]
+match = '^\d+\.x$'
+prerelease = false
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = [
+    '^chore(?:\([^)]*\))?: ',
+    '^ci(?:\([^)]*\))?: ',
+    '^build(?:\([^)]*\))?: ',
+    '^style(?:\([^)]*\))?: ',
+    '^test(?:\([^)]*\))?: ',
+    '^Merge ',
+]
 
 [tool.uv]
 dev-dependencies = [

@@ -28,7 +28,7 @@ from superqt.utils import thread_worker
 
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+from faser.generators.vectorial.stephane import generate_psf
 from faser.napari.widgets.fields import generate_single_widgets_from_model
 from faser.napari.widgets.mpl_canvas import MaximumDialog
 

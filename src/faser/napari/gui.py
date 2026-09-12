@@ -3,7 +3,7 @@ import numpy as np
 from magicgui import magicgui
 
 # from faser.generators.base import PSFConfig, mode, window
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+from faser.generators.vectorial.stephane import generate_psf
 import numpy as np
 
 # import napari
@@ -12,7 +12,7 @@ from scipy import ndimage
 from skimage.transform import resize
 
 # from faser.generators.base import Aberration, Mode, WindowType, Polarization, PSFConfig
-# from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+# from faser.generators.vectorial.stephane import generate_psf
 
 slider = {"widget_type": "FloatSlider", "min": -1, "max": 1, "step": 0.05}
 tilt_slider = {"widget_type": "FloatSlider", "min": 0, "max": 90, "step": 0.05}

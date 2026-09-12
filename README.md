@@ -7,6 +7,10 @@ of geometrical and optical parameters on imaging performance in advanced applica
 software supports various beam profiles, including those used in STED microscopy, and allows for
 the simulation of common experimental conditions such as a cranial window and a coverslip tilt.
 
+The simulator itself is implemented in Rust (`faser._core`) and uses all available CPU cores;
+a pure numpy reference implementation is kept alongside it for validation
+(`faser.generators.vectorial.stephane.generate_psf_numpy`).
+
 We provide to prefered ways to use faser:
 
 ## Faser as a Napari Plugin
@@ -130,3 +134,18 @@ faser➜  faser git:(master) ✗ uv run faser --help
 ```
 
 
+
+## Building from source
+
+Binary wheels are published for Linux, macOS and Windows. Installing from a source
+checkout compiles the native backend, which needs a Rust toolchain (https://rustup.rs):
+
+```bash
+uv sync            # or: pip install -e .
+```
+
+For local development after editing `rust/src/lib.rs`:
+
+```bash
+uvx maturin develop --release
+```

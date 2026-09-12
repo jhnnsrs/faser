@@ -1,0 +1,23 @@
+[package]
+name = "faser-core"
+version = "0.0.0"  # version is taken from pyproject.toml by maturin
+edition = "2024"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.27", features = ["abi3-py39"] }
+numpy = "0.27"
+ndarray = { version = "0.15", features = ["rayon"] } # Enable rayon for ndarray
+rayon = "1.11"
+num-complex = "0.4"
+num-traits = "0.2"
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"

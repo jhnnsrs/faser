@@ -146,3 +146,7 @@ export
 static_collected
 data
 *.temp
+# Rust build artefacts
+rust/target/
+*.abi3.so
+*.pyd

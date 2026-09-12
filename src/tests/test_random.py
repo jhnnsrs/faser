@@ -1,5 +1,5 @@
 from faser.generators.base import PSFConfig
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+from faser.generators.vectorial.stephane import generate_psf
 import numpy as np
 import pytest
 

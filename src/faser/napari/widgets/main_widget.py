@@ -25,11 +25,11 @@ from qtpy.QtWidgets import QStyle
 from faser.env import get_asset_file
 from faser.generators.base import AberrationFloat, PSFConfig
 from faser.generators.utils import polar_phase_mask, polar_to_cartesian
+from faser.generators.vectorial.stephane import generate_psf
 from faser.generators.vectorial.stephane.tilted_coverslip import (
     generate_aberration,
     generate_intensity_profile,
     generate_phase_mask,
-    generate_psf,
 )
 from faser.napari.widgets.helper_widget import comparative_value
 

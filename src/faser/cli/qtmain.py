@@ -4,7 +4,7 @@ import rich_click as click
 import tifffile
 
 from faser.generators.base import PSFConfig
-from faser.generators.vectorial.stephane.tilted_coverslip import generate_psf
+from faser.generators.vectorial.stephane import generate_psf
 from faser.napari.main import main as qtmain
 
 arg_map = {}
