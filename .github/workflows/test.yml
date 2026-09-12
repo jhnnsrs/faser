@@ -30,8 +30,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # No extras: the `full` extra pins pyqt5-qt5, which ships no Windows
+      # wheel, and the tests only exercise the simulator, not the GUI.
       - name: Install the project (compiles the native backend)
-        run: uv sync --all-extras --dev
+        run: uv sync --dev
 
       - name: Run tests
         run: uv run pytest src/tests
