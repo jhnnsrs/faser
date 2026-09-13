@@ -18,6 +18,8 @@ export interface RenderSettings {
   opacity: number;
   steps: number;
   showBox: boolean;
+  /** Axis-length labels on the box (off in compact views). */
+  boxLabels?: boolean;
 }
 
 export const DEFAULT_RENDER: RenderSettings = {
@@ -223,15 +225,19 @@ export function VolumeMesh({ result, settings }: { result: Volume; settings: Ren
             <edgesGeometry args={[new THREE.BoxGeometry(1, 1, 1)]} />
             <lineBasicMaterial color="#8a8a96" transparent opacity={0.5} />
           </lineSegments>
-          <Html position={[0.5, -0.5, -0.5]} center className="pg-label" zIndexRange={[10, 0]}>
-            x {sx.toFixed(2)} µm
-          </Html>
-          <Html position={[-0.5, 0.5, -0.5]} center className="pg-label" zIndexRange={[10, 0]}>
-            y {sy.toFixed(2)} µm
-          </Html>
-          <Html position={[-0.5, -0.5, 0.5]} center className="pg-label" zIndexRange={[10, 0]}>
-            z {sz.toFixed(2)} µm
-          </Html>
+          {settings.boxLabels !== false && (
+            <>
+              <Html position={[0.5, -0.5, -0.5]} center className="pg-label" zIndexRange={[10, 0]}>
+                x {sx.toFixed(2)} µm
+              </Html>
+              <Html position={[-0.5, 0.5, -0.5]} center className="pg-label" zIndexRange={[10, 0]}>
+                y {sy.toFixed(2)} µm
+              </Html>
+              <Html position={[-0.5, -0.5, 0.5]} center className="pg-label" zIndexRange={[10, 0]}>
+                z {sz.toFixed(2)} µm
+              </Html>
+            </>
+          )}
         </group>
       )}
     </group>

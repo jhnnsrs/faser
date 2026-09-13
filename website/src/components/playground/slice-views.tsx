@@ -68,32 +68,24 @@ export function SliceViews({ result, colormap, log, logDecades, gamma }: Props) 
   const zAt = -L_obs_Z + zmax * dz + result.derived.dfoc;
   const dxy = nx > 1 ? (2 * L_obs_XY) / (nx - 1) : 0;
 
+  const tag = 'pointer-events-none absolute left-1.5 top-1 rounded bg-black/50 px-1 text-[10px] font-medium leading-4 text-white/80';
   return (
-    <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-      <figure className="min-w-0">
-        <div className="overflow-hidden rounded-md border bg-black" style={{ aspectRatio: '1 / 1' }}>
+    <div className="flex flex-col gap-1.5 text-[11px] text-muted-foreground">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="relative overflow-hidden rounded-md bg-black" style={{ aspectRatio: '1 / 1' }}>
           <canvas ref={xyRef} className="h-full w-full" style={{ imageRendering: nx < 48 ? 'pixelated' : 'auto' }} />
+          <span className={tag}>XY</span>
         </div>
-        <figcaption className="mt-1">
-          XY at brightest z ({zAt >= 0 ? '+' : ''}
-          {zAt.toFixed(2)} µm), {(2 * L_obs_XY).toFixed(2)} µm wide
-        </figcaption>
-      </figure>
-      <figure className="min-w-0">
-        <div
-          className="overflow-hidden rounded-md border bg-black"
-          style={{ aspectRatio: `${2 * L_obs_XY} / ${2 * L_obs_Z}`, maxHeight: '100%' }}
-        >
+        <div className="relative overflow-hidden rounded-md bg-black" style={{ aspectRatio: `${2 * L_obs_XY} / ${2 * L_obs_Z}`, maxHeight: '100%' }}>
           <canvas ref={xzRef} className="h-full w-full" style={{ imageRendering: nx < 48 ? 'pixelated' : 'auto' }} />
+          <span className={tag}>XZ</span>
         </div>
-        <figcaption className="mt-1">
-          XZ through y = {((ymax - (ny - 1) / 2) * dxy).toFixed(2)} µm, z up, {(2 * L_obs_Z).toFixed(2)} µm tall
-        </figcaption>
-      </figure>
-      <div className="col-span-2 flex items-center gap-2">
-        <span>{log ? `10⁻${logDecades}` : '0'}</span>
-        <div className="h-2 flex-1 rounded" style={{ background: colormapCss(colormap) }} />
-        <span>1</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="truncate" title={`XY plane at z = ${zAt >= 0 ? '+' : ''}${zAt.toFixed(2)} µm (brightest), XZ plane through y = ${((ymax - (ny - 1) / 2) * dxy).toFixed(2)} µm, z up`}>
+          {(2 * L_obs_XY).toFixed(1)} × {(2 * L_obs_Z).toFixed(1)} µm
+        </span>
+        <div className="h-1.5 min-w-0 flex-1 rounded-full opacity-80" style={{ background: colormapCss(colormap) }} title={log ? `log scale, ${logDecades} decades` : 'linear scale'} />
       </div>
     </div>
   );

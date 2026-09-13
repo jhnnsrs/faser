@@ -51,31 +51,32 @@ export function PsfInset({ result, volume, quality, render, onRender, image, lay
             ))}
           </div>
         ) : (
-          <span className="font-semibold">PSF at the focus</span>
+          <span className="font-semibold">PSF</span>
         )}
         {!showImage && result && quality === 'preview' && (
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">preview</span>
         )}
-        <span className="ml-auto text-muted-foreground">{shown ? `${shown.nx}×${shown.ny}×${shown.nz}` : ''}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{shown ? `${shown.nx} × ${shown.ny} × ${shown.nz}` : ''}</span>
       </div>
       <div className={cn('flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3', wide ? 'md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-start' : 'overflow-y-auto')}>
         <div className={cn('relative w-full shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]', wide ? 'h-[max(420px,62vh)] md:row-span-2' : 'aspect-square max-h-[240px]')}>
-          <VolumeViewer volume={shown} settings={showImage ? imageRender : render} />
+          <VolumeViewer volume={shown} settings={{ ...(showImage ? imageRender : render), boxLabels: wide }} />
         </div>
         {showImage && image ? (
-          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-            <figure className="min-w-0">
-              <SliceCanvas volume={image} plane="xy" index={Math.floor(image.nz / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} />
-              <figcaption className="mt-1">XY at the centre, {image.sizeX.toFixed(1)} µm wide</figcaption>
-            </figure>
-            <figure className="min-w-0">
-              <SliceCanvas volume={image} plane="xz" index={Math.floor(image.ny / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} />
-              <figcaption className="mt-1">XZ through the centre, {image.sizeZ.toFixed(1)} µm tall</figcaption>
-            </figure>
-            <div className="col-span-2 flex items-center gap-2">
-              <span>0</span>
-              <div className="h-2 flex-1 rounded" style={{ background: colormapCss(render.colormap) }} />
-              <span>max</span>
+          <div className="flex flex-col gap-1.5 text-[11px] text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <SliceCanvas volume={image} plane="xy" index={Math.floor(image.nz / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} className="overflow-hidden rounded-md bg-black" />
+                <span className="pointer-events-none absolute left-1.5 top-1 rounded bg-black/50 px-1 text-[10px] font-medium leading-4 text-white/80">XY</span>
+              </div>
+              <div className="relative">
+                <SliceCanvas volume={image} plane="xz" index={Math.floor(image.ny / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} className="overflow-hidden rounded-md bg-black" />
+                <span className="pointer-events-none absolute left-1.5 top-1 rounded bg-black/50 px-1 text-[10px] font-medium leading-4 text-white/80">XZ</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>{image.sizeX.toFixed(1)} × {image.sizeZ.toFixed(1)} µm, centre planes</span>
+              <div className="h-1.5 min-w-0 flex-1 rounded-full opacity-80" style={{ background: colormapCss(render.colormap) }} />
             </div>
           </div>
         ) : result ? (
