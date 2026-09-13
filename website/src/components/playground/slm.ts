@@ -282,17 +282,31 @@ export function drawSlmPanel(canvas: HTMLCanvasElement, s: Slm, phase: ArrayLike
   ctx.setLineDash([]);
 }
 
+/** Decode an image file into an element (via an object URL, which works for every browser image format). */
+async function decodeImage(file: File): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  } catch {
+    throw new Error(`${file.name}: not a readable image`);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** Load an image file as an n×n grayscale array in [0, 1] (luma, top row first). */
 export async function imageToGray(file: File, n: number): Promise<Float32Array> {
-  const bitmap = await createImageBitmap(file);
+  const img = await decodeImage(file);
   const canvas = document.createElement('canvas');
   canvas.width = n;
   canvas.height = n;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas not available');
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(bitmap, 0, 0, n, n);
-  bitmap.close();
+  ctx.drawImage(img, 0, 0, n, n);
   const { data } = ctx.getImageData(0, 0, n, n);
   const out = new Float32Array(n * n);
   for (let k = 0; k < n * n; k++) {

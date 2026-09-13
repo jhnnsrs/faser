@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { COLORMAPS, type ColormapName } from './colormaps';
+import { SliceCanvas } from './slice-canvas';
 import { SliceViews } from './slice-views';
+import { colormapCss } from './colormaps';
 import type { PsfResult } from './use-psf-worker';
 import type { Volume } from './volume';
 import { VolumeViewer, type RenderSettings } from './volume-viewer';
@@ -15,33 +17,71 @@ interface Props {
   quality: 'preview' | 'final';
   render: RenderSettings;
   onRender: (patch: Partial<RenderSettings>) => void;
+  /** The convolved image of the simulated sample (imaging simulation open); shown instead of the PSF. */
+  image?: Volume | null;
 }
 
 /**
  * The zoom-in on the focus: the PSF volume and its XY / XZ cross-sections,
  * floating next to the microscope and tied to the focus by a leader line.
  */
-export function PsfInset({ result, volume, quality, render, onRender }: Props) {
+export function PsfInset({ result, volume, quality, render, onRender, image }: Props) {
   const [showControls, setShowControls] = useState(false);
+  const [view, setView] = useState<'psf' | 'image'>('image');
+  const showImage = !!image && view === 'image';
+  const shown = showImage ? image : volume;
+  const imageRender: RenderSettings = { ...render, mode: 'composite', threshold: Math.max(render.threshold, 0.05), opacity: Math.max(render.opacity, 0.9) };
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-2 text-xs">
-        <span className="font-semibold">PSF at the focus</span>
-        {result && quality === 'preview' && (
+        {image ? (
+          <div className="inline-flex overflow-hidden rounded-md border">
+            {(['image', 'psf'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setView(m)}
+                className={cn('px-2 py-0.5', view === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
+              >
+                {m === 'image' ? 'Image of the sample' : 'PSF'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="font-semibold">PSF at the focus</span>
+        )}
+        {!showImage && result && quality === 'preview' && (
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">preview</span>
         )}
-        <span className="ml-auto text-muted-foreground">{result ? `${result.nx}×${result.ny}×${result.nz}` : ''}</span>
+        <span className="ml-auto text-muted-foreground">{shown ? `${shown.nx}×${shown.ny}×${shown.nz}` : ''}</span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
         <div className="relative h-[210px] shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]">
-          <VolumeViewer volume={volume} settings={render} />
+          <VolumeViewer volume={shown} settings={showImage ? imageRender : render} />
         </div>
-        {result ? (
+        {showImage && image ? (
+          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+            <figure className="min-w-0">
+              <SliceCanvas volume={image} plane="xy" index={Math.floor(image.nz / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} />
+              <figcaption className="mt-1">XY at the centre, {image.sizeX.toFixed(1)} µm wide</figcaption>
+            </figure>
+            <figure className="min-w-0">
+              <SliceCanvas volume={image} plane="xz" index={Math.floor(image.ny / 2)} colormap={render.colormap} mapping={render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma }} />
+              <figcaption className="mt-1">XZ through the centre, {image.sizeZ.toFixed(1)} µm tall</figcaption>
+            </figure>
+            <div className="col-span-2 flex items-center gap-2">
+              <span>0</span>
+              <div className="h-2 flex-1 rounded" style={{ background: colormapCss(render.colormap) }} />
+              <span>max</span>
+            </div>
+          </div>
+        ) : result ? (
           <SliceViews result={result} colormap={render.colormap} log={render.log} logDecades={render.logDecades} gamma={render.gamma} />
         ) : (
           <div className="flex h-24 items-center justify-center rounded-lg border text-xs text-muted-foreground">No volume yet</div>
         )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+          {!showImage && (
           <div className="inline-flex overflow-hidden rounded-md border">
             {(['mip', 'composite'] as const).map((m) => (
               <button
@@ -54,6 +94,7 @@ export function PsfInset({ result, volume, quality, render, onRender }: Props) {
               </button>
             ))}
           </div>
+          )}
           <select className="rounded-md border bg-background px-1.5 py-0.5" value={render.colormap} onChange={(e) => onRender({ colormap: e.target.value as ColormapName })}>
             {COLORMAPS.map((c) => (
               <option key={c} value={c}>

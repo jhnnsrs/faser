@@ -413,7 +413,7 @@ export const COMPONENTS: ComponentDef[] = [
   {
     id: 'sample',
     title: 'Sample',
-    summary: 'The medium below the coverslip and how deep the focus sits in it.',
+    summary: 'The medium below the coverslip, how deep the focus sits in it, and what is imaged there.',
     fields: [
       { key: 'n3', label: 'n₃ sample', min: 1.0, max: 1.8, step: 0.001 },
       { key: 'Depth', label: 'Imaging depth', min: 0, max: 999, step: 1, unit: 'µm', hint: 'Nominal focus below the coverslip' },

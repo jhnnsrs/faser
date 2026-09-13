@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Aperture, ChevronDown, CircleDot, Grid3x3, Layers, Lightbulb, Microscope, MousePointerClick, Sparkles, Sun, Target, Upload, X, type LucideIcon } from 'lucide-react';
+import { Aperture, ChevronDown, CircleDot, Dices, Grid3x3, Layers, Lightbulb, Microscope, MousePointerClick, Sparkles, Sun, Target, Upload, X, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { alpha, autoGrid, type Grid } from './physics';
 import { zernikeRange } from './zernike';
@@ -20,6 +20,8 @@ import {
   type Params,
 } from './params';
 import { drawSlmPanel, hasZernike, imageToGray, resampleSquare, SLM_LEVELS, SLM_PATTERNS, SLM_SIZES, designPhases, type SlmDesign } from './slm';
+import { KIND_DEFAULTS, SAMPLE_OPTIONS, type ImagingSettings } from './use-imaging';
+import type { SampleKind } from './volume';
 
 export const COMPONENT_ICONS: Record<ComponentId, LucideIcon> = {
   laser: Sun,
@@ -49,6 +51,11 @@ interface Props {
   autoGridOn: boolean;
   onAutoGrid: (on: boolean) => void;
   estimateMs: number;
+  /** What sits at the focus and how the sample is imaged. */
+  imaging: ImagingSettings;
+  onImaging: (patch: Partial<ImagingSettings>) => void;
+  /** Status of the imaging simulation: voxel size, load guard and errors. */
+  imagingStatus: { voxel: { dx: number; dz: number } | null; tooLarge: boolean; error: string | null; busy: 'sample' | 'image' | null };
 }
 
 /** Fields that only matter for some settings are dimmed otherwise. */
@@ -440,6 +447,128 @@ function ZernikeLayer({ design, onDesign }: { design: SlmDesign; onDesign: Props
 }
 
 // ---------------------------------------------------------------------------
+// Sample: what sits at the focus
+// ---------------------------------------------------------------------------
+
+function ImagingSection({ imaging, onImaging, imagingStatus }: Pick<Props, 'imaging' | 'onImaging' | 'imagingStatus'>) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const s = imaging;
+  const info = SAMPLE_OPTIONS.find((k) => k.value === s.kind);
+  const { voxel, tooLarge, error, busy } = imagingStatus;
+  const loadImage = async (file: File) => {
+    try {
+      const gray = await imageToGray(file, s.imageSize);
+      onImaging({ image: gray, imageName: file.name, kind: 'image', mode: 'sample' });
+      setImageError(null);
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="block">
+        <div className="mb-1 text-xs font-medium">At the focus</div>
+        <select className="w-full rounded-md border bg-background px-2 py-1 text-xs" value={s.mode} onChange={(e) => onImaging({ mode: e.target.value as ImagingSettings['mode'] })}>
+          <option value="bead">A fluorescent bead (its image is the PSF)</option>
+          <option value="sample">A sample, imaged through the PSF</option>
+        </select>
+      </label>
+      {s.mode === 'sample' && (
+        <div className="flex flex-col gap-3 rounded-lg border bg-background p-3">
+          <label className="block">
+            <div className="mb-1 text-xs font-medium">Sample</div>
+            <div className="flex gap-2">
+              <select
+                className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+                value={s.kind}
+                onChange={(e) => {
+                  const kind = e.target.value as ImagingSettings['kind'];
+                  onImaging(kind === 'image' ? { kind } : { kind, ...KIND_DEFAULTS[kind as SampleKind] });
+                }}
+              >
+                {SAMPLE_OPTIONS.map((k) => (
+                  <option key={k.value} value={k.value}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+              {s.kind !== 'image' && (
+                <button type="button" className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs" onClick={() => onImaging({ seed: Math.floor(Math.random() * 1e6) })} title="New random sample">
+                  <Dices className="size-3.5" />
+                  {s.seed}
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{info?.description}</p>
+          </label>
+          {s.kind === 'image' && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-xs">
+                <button type="button" className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1" onClick={() => fileRef.current?.click()}>
+                  <Upload className="size-3.5" />
+                  Load image
+                </button>
+                <span className="truncate text-muted-foreground">{s.imageName ?? 'PNG / JPG, brightness = fluorescence'}</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void loadImage(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+              {imageError && <p className="text-xs text-red-600 dark:text-red-400">{imageError}</p>}
+              <Num label="Slab thickness" value={s.imageThickness} min={0.05} max={3} step={0.05} unit="µm" onChange={(v) => onImaging({ imageThickness: v })} />
+            </div>
+          )}
+          {(s.kind === 'beads' || s.kind === 'filaments' || s.kind === 'cells' || s.kind === 'spokes') && (
+            <Num
+              label={s.kind === 'spokes' ? 'Spokes' : 'Count'}
+              value={s.count}
+              min={s.kind === 'spokes' ? 4 : 1}
+              max={s.kind === 'cells' ? 8 : s.kind === 'spokes' ? 64 : 120}
+              step={1}
+              onChange={(v) => onImaging({ count: v })}
+            />
+          )}
+          {s.kind !== 'image' && (
+            <Num
+              label={s.kind === 'cells' ? 'Membrane' : s.kind === 'spokes' ? 'Inner radius' : 'Radius'}
+              value={s.radius}
+              min={0.02}
+              max={1}
+              step={0.01}
+              unit="µm"
+              onChange={(v) => onImaging({ radius: v })}
+            />
+          )}
+          {(s.kind === 'lattice' || s.kind === 'spokes') && (
+            <Num label={s.kind === 'lattice' ? 'Spacing' : 'Slab thickness'} value={s.spacing} min={0.05} max={3} step={0.05} unit="µm" onChange={(v) => onImaging({ spacing: v })} />
+          )}
+          <div className="grid grid-cols-2 gap-x-3">
+            <Num label="Field xy" value={s.nxy} min={32} max={256} step={8} unit="px" onChange={(v) => onImaging({ nxy: v })} />
+            <Num label="Field z" value={s.nz} min={8} max={128} step={4} unit="px" onChange={(v) => onImaging({ nz: v })} />
+          </div>
+          <Num label="Photons (peak)" value={s.photons} min={0} max={2000} step={10} hint="Poisson shot noise with this many expected counts in the brightest voxel; 0 = none" onChange={(v) => onImaging({ photons: v })} />
+          <p className="text-xs text-muted-foreground">
+            Field of view {voxel ? `${(s.nxy * voxel.dx).toFixed(2)} × ${(s.nxy * voxel.dx).toFixed(2)} × ${(s.nz * voxel.dz).toFixed(2)} µm` : '–'} on the PSF&apos;s voxel grid; the image is the sample
+            convolved with the PSF (3-D FFT).
+            {busy === 'sample' ? ' Generating the sample…' : busy === 'image' ? ' Convolving…' : ''}
+            {tooLarge && <span className="ml-1 text-amber-600 dark:text-amber-400">Too large for the FFT in the browser, reduce the field or the PSF grid.</span>}
+            {error && <span className="ml-1 text-red-600 dark:text-red-400">{error}</span>}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Focus & sampling
 // ---------------------------------------------------------------------------
 
@@ -597,6 +726,7 @@ export function Inspector(props: Props) {
                 {params.n1 * Math.sin(derived.alpha_eff) > params.n3 ? ' (part of the aperture is beyond the critical angle: evanescent in the sample)' : ''}. Pupil radius r₀ = {derived.r0.toFixed(0)} µm.
               </p>
             )}
+            {def.id === 'sample' && <ImagingSection imaging={props.imaging} onImaging={props.onImaging} imagingStatus={props.imagingStatus} />}
             {def.id === 'window' && derived && params.Window === 'CUSTOM' && (
               <p className="text-xs text-muted-foreground">
                 The window clips the aperture to an effective NA of {derived.na_eff.toFixed(3)} (α = {((derived.alpha_eff * 180) / Math.PI).toFixed(1)}°).

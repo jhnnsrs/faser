@@ -141,7 +141,8 @@ function makeColormapTexture(name: ColormapName) {
   return tex;
 }
 
-function VolumeMesh({ result, settings }: { result: Volume; settings: RenderSettings }) {
+/** The ray-marched volume, a unit cube (longest side 1) with local z as the optical axis, rotated so z points up. */
+export function VolumeMesh({ result, settings }: { result: Volume; settings: RenderSettings }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   // Created once; the material owns this object, effects update it through the ref.

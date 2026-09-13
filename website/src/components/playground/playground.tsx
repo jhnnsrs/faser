@@ -4,12 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, FolderOpen, Play, RotateCcw, Tag, Zap } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { COLORMAPS, type ColormapName } from './colormaps';
-import { ComparePane } from './compare-pane';
 import { Inspector } from './inspector';
 import { MicroscopeScene } from './microscope-scene';
 import { coerceParams, DEFAULTS, GRID_KEYS, PRESETS, workUnits, ZERNIKE_KEYS, ZERO_ZERNIKE, type ComponentId, type Derived, type Params, type ZernikeCoeffs } from './params';
 import { autoGrid, previewGrid } from './physics';
-import { SimulationPane } from './simulation-pane';
 import { buildSlm, DEFAULT_SLM_DESIGN, designFromSlm, hasZernike, negatedZernike, type SlmDesign } from './slm';
 import { zernikeRange } from './zernike';
 import { writeTiff } from './tiff';
@@ -17,18 +15,12 @@ import { usePsfWorker, type PsfResult } from './use-psf-worker';
 import { psfToVolume } from './volume';
 import { DEFAULT_RENDER, type RenderSettings } from './volume-viewer';
 import { PsfInset } from './psf-inset';
+import { DEFAULT_IMAGING, useImaging, type ImagingSettings } from './use-imaging';
 
 /** Above this estimated time the accurate volume waits for "Generate". */
 const AUTO_MS_LIMIT = 6000;
 const PREVIEW_DEBOUNCE = 40;
 const FINAL_DEBOUNCE = 350;
-
-type Pane = 'compare' | 'simulate';
-
-const PANES: { id: Pane; label: string }[] = [
-  { id: 'compare', label: 'Vectorial vs scalar' },
-  { id: 'simulate', label: 'Imaging simulation' },
-];
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -89,15 +81,15 @@ export function Playground() {
   const [selected, setSelected] = useState<ComponentId | null>(null);
   const [hovered, setHovered] = useState<ComponentId | null>(null);
   const [result, setResult] = useState<PsfResult | null>(null);
-  const [scalarResult, setScalarResult] = useState<PsfResult | null>(null);
   const [derived, setDerived] = useState<Derived | null>(null);
   const [render, setRender] = useState<RenderSettings>(DEFAULT_RENDER);
   const [live, setLive] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [alwaysLabels, setAlwaysLabels] = useState(false);
   const [preset, setPreset] = useState(0);
-  const [pane, setPane] = useState<Pane | null>(null);
   const [focusPt, setFocusPt] = useState<{ x: number; y: number } | null>(null);
+  const [imaging, setImaging] = useState<ImagingSettings>(DEFAULT_IMAGING);
+  const updateImaging = useCallback((patch: Partial<ImagingSettings>) => setImaging((s) => ({ ...s, ...patch })), []);
   // ms per 1e6 work units, a running average of measured accurate runs
   // (~2.6 for V8/wasm on a desktop core, slower on laptops).
   const [msPerMega, setMsPerMega] = useState(4);
@@ -166,23 +158,6 @@ export function Playground() {
     };
   }, [effective, previewParams, ready, autoActive, derive, requestPreview, requestFinal]);
 
-  // Comparison pane: the scalar PSF for the displayed accurate result.
-  useEffect(() => {
-    if (pane !== 'compare' || !result || quality !== 'final') return;
-    if (scalarResult && scalarResult.params === result.params) return;
-    let cancelled = false;
-    finalGenerate(result.params, true)
-      .then((r) => {
-        if (!cancelled) setScalarResult(r);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pane, result, quality, scalarResult, finalGenerate]);
-
   const update = useCallback((patch: Partial<Params>) => setParams((p) => ({ ...p, ...patch })), []);
 
   const applyDesign = useCallback((next: SlmDesign) => {
@@ -249,21 +224,21 @@ export function Playground() {
   };
 
   const volume = useMemo(() => (result ? psfToVolume(result) : null), [result]);
-  const scalarForResult = scalarResult && result && scalarResult.params === result.params ? scalarResult : null;
-  const scalarPending = pane === 'compare' && !!result && quality === 'final' && !scalarForResult;
+  // The sample at the focus and its image, when the Sample card asks for one.
+  const sim = useImaging(imaging, quality === 'final' ? result : null, ready, generateSample, convolve);
   const finalPending = finalBusy || (autoActive && result?.params !== effective);
 
   const status = useMemo(() => {
     if (!ready && !workerError) return { text: 'Loading simulator…', tone: 'muted' as const };
     if (workerError) return { text: workerError, tone: 'error' as const };
     if (error) return { text: error, tone: 'error' as const };
-    if (finalBusy || scalarPending) {
+    if (finalBusy) {
       return { text: `Computing ${effective.Nxy}² × ${effective.Nz}${estimateMs > 400 ? ` (≈ ${(estimateMs / 1000).toFixed(1)} s)` : ''}…`, tone: 'busy' as const };
     }
     if (result && quality === 'final') return { text: `${result.nx}×${result.ny}×${result.nz}, θ ${result.params.Ntheta} φ ${result.params.Nphi}, ${result.ms.toFixed(0)} ms`, tone: 'ok' as const };
     if (result) return { text: `Preview ${result.nx}×${result.ny}×${result.nz}${autoActive ? '' : ', press Generate for the accurate volume'}`, tone: 'preview' as const };
     return { text: 'Ready', tone: 'muted' as const };
-  }, [ready, workerError, error, finalBusy, scalarPending, result, quality, effective, estimateMs, autoActive]);
+  }, [ready, workerError, error, finalBusy, result, quality, effective, estimateMs, autoActive]);
 
   const updateRender = useCallback((patch: Partial<RenderSettings>) => setRender((r) => ({ ...r, ...patch })), []);
 
@@ -379,18 +354,19 @@ export function Playground() {
               onHover={setHovered}
               slmZernike={design.enabled && hasZernike(design.zernike)}
               onFocusScreen={setFocusPt}
+              sample={sim.sample}
             />
             {/* loupe on the focus and the leader line to the zoom-in */}
             {focusPt && (
               <svg className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" aria-hidden>
-                <circle cx={focusPt.x} cy={focusPt.y} r={22} fill="none" stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
-                <line x1={focusPt.x + 22} y1={focusPt.y} x2="100%" y2={44} stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
+                <circle cx={focusPt.x} cy={focusPt.y} r={sim.sample ? 46 : 22} fill="none" stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
+                <line x1={focusPt.x + (sim.sample ? 46 : 22)} y1={focusPt.y} x2="100%" y2={44} stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
               </svg>
             )}
             {(previewBusy || finalPending) && <div className="pointer-events-none absolute right-3 top-3 size-2 animate-pulse rounded-full bg-primary" />}
           </div>
           <aside className="h-[46vh] w-full shrink-0 border-t bg-card/80 backdrop-blur sm:h-auto sm:w-[300px] sm:border-l sm:border-t-0">
-            <PsfInset result={result} volume={volume} quality={quality} render={render} onRender={updateRender} />
+            <PsfInset result={result} volume={volume} quality={quality} render={render} onRender={updateRender} image={sim.image} />
           </aside>
         </div>
         <aside className="h-[58vh] min-h-[440px] overflow-hidden rounded-xl border bg-card">
@@ -407,40 +383,13 @@ export function Playground() {
             autoGridOn={autoGridOn}
             onAutoGrid={setAutoGridOn}
             estimateMs={estimateMs}
+            imaging={imaging}
+            onImaging={updateImaging}
+            imagingStatus={{ voxel: sim.voxel, tooLarge: sim.tooLarge, error: sim.error, busy: sim.busy }}
           />
         </aside>
       </div>
 
-      {/* Analyses */}
-      <div role="tablist" className="flex flex-wrap items-center gap-1 border-b">
-        <span className="px-1 py-2 text-xs text-muted-foreground">Analyses</span>
-        {PANES.map((p) => (
-          <button
-            key={p.id}
-            role="tab"
-            type="button"
-            aria-selected={pane === p.id}
-            onClick={() => setPane((cur) => (cur === p.id ? null : p.id))}
-            className={cn('-mb-px border-b-2 px-3 py-2 text-sm', pane === p.id ? 'border-primary font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {pane === 'compare' &&
-        (result && quality === 'final' ? (
-          <>
-            <h2 className="text-sm font-semibold">Vectorial vs scalar</h2>
-            <ComparePane vectorial={result} scalar={scalarForResult} colormap={render.colormap} log={render.log} logDecades={render.logDecades} gamma={render.gamma} busy={finalBusy || scalarPending} />
-          </>
-        ) : (
-          <div className="flex h-48 items-center justify-center rounded-xl border text-sm text-muted-foreground">
-            {result ? 'Waiting for the accurate volume…' : 'Generate a PSF first'}
-          </div>
-        ))}
-
-      {pane === 'simulate' && <SimulationPane psf={quality === 'final' ? result : null} ready={ready} generateSample={generateSample} convolve={convolve} />}
     </div>
   );
 }

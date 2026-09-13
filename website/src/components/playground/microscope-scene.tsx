@@ -9,6 +9,8 @@ import { cn } from '@/lib/cn';
 import type { ComponentId, Derived, Params } from './params';
 import { drawPhasePlate, drawPolarizationPlate, drawPupil, wavelengthToRgb } from './pupil';
 import { drawSlmPanel } from './slm';
+import type { Volume } from './volume';
+import { DEFAULT_RENDER, VolumeMesh, type RenderSettings } from './volume-viewer';
 
 /**
  * An idealized microscope drawn from the current parameters, with every
@@ -57,6 +59,8 @@ export interface MicroscopeProps {
   slmZernike?: boolean;
   /** Reports where the focus lands on the canvas (px from its top-left), for the zoom-in leader line. */
   onFocusScreen?: (pt: { x: number; y: number } | null) => void;
+  /** The synthetic sample of the imaging simulation, drawn at the focus instead of the bead. */
+  sample?: Volume | null;
   selected: ComponentId | null;
   hovered: ComponentId | null;
   onSelect: (id: ComponentId | null) => void;
@@ -222,7 +226,12 @@ function StackDisc({
   );
 }
 
-function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen }: MicroscopeProps & { resetKey: number }) {
+/** How the simulated sample is drawn at the focus (composite, warm colormap). */
+const SAMPLE_RENDER: RenderSettings = { ...DEFAULT_RENDER, mode: 'composite', colormap: 'inferno', threshold: 0.05, opacity: 0.9, showBox: false };
+/** Drawn size (scene units) of the longest side of the sample volume; the real one is a few µm. */
+const SAMPLE_SIZE = 2.6;
+
+function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen, sample }: MicroscopeProps & { resetKey: number }) {
   useCursor(hovered != null, 'pointer', 'auto');
   const show = (id: ComponentId) => labels === 'always' || hovered === id || selected === id;
   const beamColor = useMemo(() => {
@@ -569,17 +578,29 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
         </group>
       </group>
 
-      {/* Focus */}
+      {/* Focus: a fluorescent bead (whose image is the PSF), or the simulated sample */}
       <Part {...part('focus')}>
-        <mesh position={[0, yFocus, 0]}>
-          <sphereGeometry args={[0.13, 24, 24]} />
-          <meshStandardMaterial color={beamColor} emissive={beamColor} emissiveIntensity={1.5} />
-        </mesh>
-        {/* the observation volume, to (compressed) scale */}
-        <mesh position={[0, yFocus, 0]}>
-          <boxGeometry args={[(2 * p.L_obs_XY) / 4, (2 * p.L_obs_Z) / 4, (2 * p.L_obs_XY) / 4]} />
-          <meshBasicMaterial color={tone.focus.on || tone.focus.hov ? HI : '#ffffff'} wireframe transparent opacity={tone.focus.on ? 0.9 : 0.35} />
-        </mesh>
+        {sample ? (
+          <group position={[0, yFocus, 0]} scale={SAMPLE_SIZE}>
+            <VolumeMesh result={sample} settings={SAMPLE_RENDER} />
+            <mesh scale={[sample.sizeX, sample.sizeZ, sample.sizeY].map((v) => v / Math.max(sample.sizeX, sample.sizeY, sample.sizeZ)) as [number, number, number]}>
+              <boxGeometry args={[1, 1, 1]} />
+              <meshBasicMaterial color={tone.focus.on || tone.focus.hov ? HI : '#ffffff'} wireframe transparent opacity={tone.focus.on ? 0.9 : 0.35} />
+            </mesh>
+          </group>
+        ) : (
+          <>
+            <mesh position={[0, yFocus, 0]}>
+              <sphereGeometry args={[0.13, 24, 24]} />
+              <meshStandardMaterial color="#7CFC9A" emissive="#4ade80" emissiveIntensity={1.6} />
+            </mesh>
+            {/* the observation volume, to (compressed) scale */}
+            <mesh position={[0, yFocus, 0]}>
+              <boxGeometry args={[(2 * p.L_obs_XY) / 4, (2 * p.L_obs_Z) / 4, (2 * p.L_obs_XY) / 4]} />
+              <meshBasicMaterial color={tone.focus.on || tone.focus.hov ? HI : '#ffffff'} wireframe transparent opacity={tone.focus.on ? 0.9 : 0.35} />
+            </mesh>
+          </>
+        )}
         <mesh position={[0, yFocus, 0]}>
           <sphereGeometry args={[0.45, 16, 16]} />
           <meshBasicMaterial transparent opacity={tone.focus.hov ? 0.12 : 0.001} color={HI} depthWrite={false} />
@@ -605,9 +626,12 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
         </>
       )}
       {show('focus') && (
-        <Label position={[1.6, yFocus - 0.6, 0]} active={isOn('focus')} onClick={() => onSelect('focus')}>
-          focus {p.Depth.toFixed(0)} µm deep
-          {d && Math.abs(d.dfoc) > 0.005 ? ` (shifted ${d.dfoc > 0 ? '+' : ''}${d.dfoc.toFixed(2)} µm)` : ''}, volume {(2 * p.L_obs_XY).toFixed(1)} × {(2 * p.L_obs_Z).toFixed(1)} µm
+        <Label position={[1.6, yFocus - (sample ? 1.6 : 0.6), 0]} active={isOn('focus')} onClick={() => onSelect('focus')}>
+          {sample
+            ? `simulated sample ${sample.sizeX.toFixed(1)} × ${sample.sizeY.toFixed(1)} × ${sample.sizeZ.toFixed(1)} µm at the focus`
+            : `a fluorescent bead at the focus, ${p.Depth.toFixed(0)} µm deep`}
+          {d && Math.abs(d.dfoc) > 0.005 ? ` (shifted ${d.dfoc > 0 ? '+' : ''}${d.dfoc.toFixed(2)} µm)` : ''}
+          {sample ? '' : `, PSF volume ${(2 * p.L_obs_XY).toFixed(1)} × ${(2 * p.L_obs_Z).toFixed(1)} µm`}
         </Label>
       )}
 

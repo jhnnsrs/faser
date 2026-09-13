@@ -20,7 +20,7 @@ The playground is built around a 3D model of the setup that follows the paramete
 - **Objective**: NA, immersion index, correction collar and focal length.
 - **Back pupil & aberrations**: Zernike modes. The disc on top of the objective shows the pupil as the simulator sees it: brightness is amplitude, hue is phase (phase plate, SLM and aberrations combined), with the polarization drawn on top.
 - **Coverslip**: thickness, index and tilt.
-- **Sample**: index and imaging depth. Index mismatch shifts the focus; the nominal focus is drawn as a wire sphere.
+- **Sample**: index, imaging depth and what sits at the focus (a bead, or a sample to image; see below). Index mismatch shifts the focus; the nominal focus is drawn as a wire sphere.
 - **Cranial window**: an optional skull opening on the coverslip that clips the focusing cone.
 - **Focus & sampling**: the observation volume, normalization and the simulation grid.
 
@@ -48,19 +48,14 @@ The SLM multiplies the pupil on top of the phase plate, so it can replace the pl
 
 ### The zoom-in on the focus
 
-The PSF floats next to the microscope as a zoom-in tied to the focus by a leader line: a ray-marched rendering of the volume (maximum intensity projection or emission-absorption compositing; drag to orbit), the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling. The derived quantities (angles, effective NA, focus shift, voxel sizes, grid) are in the inspector when nothing is selected.
+A fluorescent bead sits at the focus; its image is the PSF, which floats next to the microscope as a zoom-in tied to the focus by a leader line: a ray-marched rendering of the volume (maximum intensity projection or emission-absorption compositing; drag to orbit), the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling. The derived quantities (angles, effective NA, focus shift, voxel sizes, grid) are in the inspector when nothing is selected.
 
-## Analyses
+## What is at the focus
 
-Two optional analyses open below the microscope.
+The **Sample** card decides what the microscope images:
 
-### Vectorial vs scalar
-
-The same parameters are run through the scalar Debye integral: same pupil, phase mask, SLM, aberrations and coverslip/depth phase, but no polarization coupling and no Fresnel transmission. Both PSFs are shown side by side with a signed difference map (vectorial − scalar) on a diverging scale, and a table of lateral and axial FWHM values. At high NA the vectorial focus is wider and, for linear polarization, elongated along the polarization direction; the scalar model misses that.
-
-### Imaging simulation
-
-A synthetic ground-truth sample is generated on the PSF's voxel grid and convolved with the PSF (3-D FFT convolution in the browser). Choose between random beads, filaments, cells (membranes with a nucleus), a point lattice and a Siemens star, set the field of view, reseed, and optionally add Poisson shot noise with a chosen number of photons in the brightest voxel. Compare ground truth and image as z-slices or as 3D volumes.
+- **A fluorescent bead** (default): its image is the PSF shown in the zoom-in.
+- **A sample, imaged through the PSF**: a synthetic ground truth (random beads, filaments, cells with a nucleus, a point lattice, a Siemens star) or **your own image** (a PNG / JPG whose brightness is fluorescence, painted into a thin slab at the focal plane). The sample appears at the focus of the microscope, and the zoom-in switches to its image: the sample convolved with the current PSF (3-D FFT convolution in the browser, on the PSF's voxel grid), optionally with Poisson shot noise for a chosen number of photons in the brightest voxel. Only the settings that matter for the chosen sample are shown; the field of view is given in voxels of the PSF grid. A toggle in the zoom-in header returns to the PSF.
 
 ## Round trip with the desktop tools
 
@@ -70,7 +65,7 @@ The **Download** buttons give you the volume as a 32-bit multi-page TIFF (opens 
 faser --config psf_config.json --nxy 256 --l_obs_xy 4
 ```
 
-The scalar model is also available from Python for the same comparison:
+The scalar Debye model (same pupil, no polarization or Fresnel terms) is available from Python for comparisons:
 
 ```python
 from faser import _core
