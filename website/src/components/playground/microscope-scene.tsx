@@ -263,8 +263,9 @@ const EMISSION = '#9dff8a';
 function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen, sample, detector, showDetector = true }: MicroscopeProps & { resetKey: number }) {
   useCursor(hovered != null, 'pointer', 'auto');
   const show = (id: ComponentId) => labels === 'always' || hovered === id || selected === id;
-  // A fixed, soft light colour: the schematic does not tint the beam by wavelength.
-  const beamColor = useMemo(() => new THREE.Color('#f0d68a'), []);
+  // A fixed light colour in the faser brand hue, kept pale so it stays in the background;
+  // the schematic does not tint the beam by wavelength.
+  const beamColor = useMemo(() => new THREE.Color('#d9a3d3'), []);
 
   // Optional elements: drawn only when they are part of the setup. When one
   // is absent but selected / hovered (via the inspector chips), a ghost
@@ -473,10 +474,10 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
           )}
 
           {/* Focusing cone */}
-          <Frustum y0={yFocus} y1={0} r0={0} r1={r3} color={beamColor} opacity={0.55} />
-          <Frustum y0={0} y1={t} r0={r3} r1={r2} color={beamColor} opacity={0.5} />
-          <Frustum y0={t} y1={yLens} r0={r2} r1={rLens} color={beamColor} opacity={0.4} />
-          <Frustum y0={yFocus - 0.7} y1={yFocus} r0={0.7 * tan(alpha3)} r1={0} color={beamColor} opacity={0.18} />
+          <Frustum y0={yFocus} y1={0} r0={0} r1={r3} color={beamColor} opacity={0.42} />
+          <Frustum y0={0} y1={t} r0={r3} r1={r2} color={beamColor} opacity={0.38} />
+          <Frustum y0={t} y1={yLens} r0={r2} r1={rLens} color={beamColor} opacity={0.3} />
+          <Frustum y0={yFocus - 0.7} y1={yFocus} r0={0.7 * tan(alpha3)} r1={0} color={beamColor} opacity={0.14} />
           {clipped && <Frustum y0={t} y1={yLens} r0={r2} r1={rLensFull} color={beamColor} opacity={0.15} wire />}
 
           {/* Objective */}
@@ -535,7 +536,7 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
               {/* the collimated beam coming down from the laser (drawn before the optics in it) */}
               <mesh position={[0, STACK.laser / 2, 0]} renderOrder={-1}>
                 <cylinderGeometry args={[rBeam, rBeam, STACK.laser, 40, 1, true]} />
-                <meshBasicMaterial color={beamColor} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
+                <meshBasicMaterial color={beamColor} transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
               </mesh>
               {/* rail holding the optics */}
               <mesh position={[rail, (STACK.laser + LASER_LENGTH) / 2, 0]}>
