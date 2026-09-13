@@ -11,7 +11,7 @@ Everything is computed on your machine; nothing is uploaded. The grid is sized a
 
 ## The microscope
 
-The playground is built around a 3D model of the setup that follows the parameters live. Every part of it is clickable: click the objective, the coverslip, the sample, the focus, the back pupil, or any element of the illumination arm (laser, polarization optics, phase plate, spatial light modulator) and its parameters unfold in the inspector next to the scene. Drag to orbit, scroll to zoom; the chips above the inspector reach the same groups.
+The playground is built around a 3D model of the setup that follows the parameters live. Every part of it is clickable: click the objective, the coverslip, the sample, the focus, the back pupil, or any element of the illumination arm (laser, polarization optics, phase plate, spatial light modulator) and its parameters unfold in the settings card on the right: an accordion with one section per part (the same sections open when you click them). The card can be hidden with the floating button; on small screens it is a full-screen card behind the **Settings** button, which opens by itself when you tap a part. Drag to move along the axis, shift + drag to rotate, scroll to zoom. The **Microscope / PSF** toggle above the scene switches between the microscope with its zoom-in and the PSF on its own, large.
 
 - **Laser**: wavelength and the Gaussian beam profile on the pupil.
 - **Polarization**: elliptical (direction and ellipticity), radial or azimuthal input.
@@ -48,7 +48,7 @@ The SLM multiplies the pupil on top of the phase plate, so it can replace the pl
 
 ### The zoom-in on the focus
 
-A fluorescent bead sits at the focus; its image is the PSF, which floats next to the microscope as a zoom-in tied to the focus by a leader line: a ray-marched rendering of the volume (maximum intensity projection or emission-absorption compositing; drag to orbit), the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling. The derived quantities (angles, effective NA, focus shift, voxel sizes, grid) are in the inspector when nothing is selected.
+A fluorescent bead sits at the focus; its image is the PSF, which floats next to the microscope as a zoom-in tied to the focus by a leader line. A dichroic above the back pupil folds the emission to a camera whose image plane shows what is recorded: the focal plane of the PSF in bead mode, or the image of the sample in sample mode. The zoom-in holds the full volume: a ray-marched rendering of the volume (maximum intensity projection or emission-absorption compositing; drag to orbit), the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling. The derived quantities (angles, effective NA, focus shift, voxel sizes, grid) are the last section of the settings card.
 
 ## What is at the focus
 
@@ -57,9 +57,13 @@ The **Sample** card decides what the microscope images:
 - **A fluorescent bead** (default): its image is the PSF shown in the zoom-in.
 - **A sample, imaged through the PSF**: a synthetic ground truth (random beads, filaments, cells with a nucleus, a point lattice, a Siemens star) or **your own image** (a PNG / JPG whose brightness is fluorescence, painted into a thin slab at the focal plane). The sample appears at the focus of the microscope, and the zoom-in switches to its image: the sample convolved with the current PSF (3-D FFT convolution in the browser, on the PSF's voxel grid), optionally with Poisson shot noise for a chosen number of photons in the brightest voxel. Only the settings that matter for the chosen sample are shown; the field of view is given in voxels of the PSF grid. A toggle in the zoom-in header returns to the PSF.
 
+## Scenes
+
+The scene picker sits at the top of the settings card. It lists the built-in presets with a description each, and the scenes you saved in this browser. As soon as you change something the picker reads "edited" and a **Save** button appears: it stores the whole setup (parameters, SLM design, sample settings, grid mode) under a name in local storage, so it survives reloads; entries can be reloaded or deleted from the menu. The controls floating over the renderer hold the Microscope / PSF toggle, the view options behind the gear (the camera image plane, off by default; permanent labels), **Live** and **Generate**, the **Export** menu (TIFF volume, PNG / JPEG slices, config JSON), load and reset. A small badge at the bottom-right of the renderer shows progress while a volume is computed, and problems if any; it is hidden otherwise.
+
 ## Round trip with the desktop tools
 
-The **Download** buttons give you the volume as a 32-bit multi-page TIFF (opens in Fiji/ImageJ and napari with the correct pixel size) and the parameters as `psf_config.json`. That JSON is exactly what the CLI and the napari plugin read and write (including the resolved grid, the SLM pattern and the θ sampling), so you can continue on the desktop with a bigger grid or field:
+The **Export** menu gives you the volume as a 32-bit multi-page TIFF (opens in Fiji/ImageJ and napari with the correct pixel size), the XY and XZ slices as a PNG or JPEG picture, and the parameters as `psf_config.json`. That JSON is exactly what the CLI and the napari plugin read and write (including the resolved grid, the SLM pattern and the θ sampling), so you can continue on the desktop with a bigger grid or field:
 
 ```bash
 faser --config psf_config.json --nxy 256 --l_obs_xy 4

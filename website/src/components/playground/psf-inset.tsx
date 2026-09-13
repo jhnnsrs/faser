@@ -19,13 +19,16 @@ interface Props {
   onRender: (patch: Partial<RenderSettings>) => void;
   /** The convolved image of the simulated sample (imaging simulation open); shown instead of the PSF. */
   image?: Volume | null;
+  /** 'inset': the narrow zoom-in next to the microscope; 'wide': the PSF on its own, volume and slices side by side. */
+  layout?: 'inset' | 'wide';
 }
 
 /**
  * The zoom-in on the focus: the PSF volume and its XY / XZ cross-sections,
  * floating next to the microscope and tied to the focus by a leader line.
  */
-export function PsfInset({ result, volume, quality, render, onRender, image }: Props) {
+export function PsfInset({ result, volume, quality, render, onRender, image, layout = 'inset' }: Props) {
+  const wide = layout === 'wide';
   const [showControls, setShowControls] = useState(false);
   const [view, setView] = useState<'psf' | 'image'>('image');
   const showImage = !!image && view === 'image';
@@ -33,7 +36,7 @@ export function PsfInset({ result, volume, quality, render, onRender, image }: P
   const imageRender: RenderSettings = { ...render, mode: 'composite', threshold: Math.max(render.threshold, 0.05), opacity: Math.max(render.opacity, 0.9) };
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 px-3 py-2 text-xs">
         {image ? (
           <div className="inline-flex overflow-hidden rounded-md border">
             {(['image', 'psf'] as const).map((m) => (
@@ -55,8 +58,8 @@ export function PsfInset({ result, volume, quality, render, onRender, image }: P
         )}
         <span className="ml-auto text-muted-foreground">{shown ? `${shown.nx}×${shown.ny}×${shown.nz}` : ''}</span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-        <div className="relative h-[210px] shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]">
+      <div className={cn('flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3', wide ? 'md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-start' : 'overflow-y-auto')}>
+        <div className={cn('relative w-full shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]', wide ? 'h-[max(420px,62vh)] md:row-span-2' : 'aspect-square max-h-[240px]')}>
           <VolumeViewer volume={shown} settings={showImage ? imageRender : render} />
         </div>
         {showImage && image ? (

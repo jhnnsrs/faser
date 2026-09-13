@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Aperture, ChevronDown, CircleDot, Dices, Grid3x3, Layers, Lightbulb, Microscope, MousePointerClick, Sparkles, Sun, Target, Upload, X, type LucideIcon } from 'lucide-react';
+import { Aperture, ChevronDown, CircleDot, Dices, Grid3x3, Layers, Lightbulb, Microscope, Sigma, Sparkles, Sun, Target, Upload, X, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { alpha, autoGrid, type Grid } from './physics';
 import { zernikeRange } from './zernike';
@@ -9,6 +9,7 @@ import {
   COMPONENTS,
   COMPONENT_BY_ID,
   GRID_KEYS,
+  type ComponentDef,
   ZERNIKE_FIELDS,
   ZERNIKE_KEYS,
   ZERO_ZERNIKE,
@@ -56,6 +57,10 @@ interface Props {
   onImaging: (patch: Partial<ImagingSettings>) => void;
   /** Status of the imaging simulation: voxel size, load guard and errors. */
   imagingStatus: { voxel: { dx: number; dz: number } | null; tooLarge: boolean; error: string | null; busy: 'sample' | 'image' | null };
+  /** Shown as a close button next to the title (the drawer on small screens). */
+  onClose?: () => void;
+  /** The scene picker (presets, saved scenes, save), rendered under the title. */
+  scenePicker?: React.ReactNode;
 }
 
 /** Fields that only matter for some settings are dimmed otherwise. */
@@ -623,126 +628,146 @@ function GridSection({
 // Inspector
 // ---------------------------------------------------------------------------
 
+/** The parameters of one component (the content of its accordion section). */
+function SectionBody({ def, ...props }: Props & { def: ComponentDef }) {
+  const { params, derived, onChange, design, onDesign } = props;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground">{def.summary}</p>
+      {def.id === 'slm' ? (
+        <SlmDesigner params={params} design={design} onDesign={onDesign} onChange={onChange} />
+      ) : def.id === 'focus' ? (
+        <>
+          {def.fields
+            .filter((f) => !(GRID_KEYS as readonly string[]).includes(f.key))
+            .map((f) => (
+              <FieldRow key={f.key} field={f} params={params} value={params[f.key]} onChange={onChange} />
+            ))}
+          <GridSection {...props} />
+        </>
+      ) : (
+        def.fields.map((f) => <FieldRow key={f.key} field={f} params={params} value={params[f.key]} onChange={onChange} />)
+      )}
+
+      {def.id === 'pupil' && (
+        <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
+          <p className="text-xs text-muted-foreground">
+            Send these modes to the spatial light modulator{design.enabled ? ' (on top of its pattern)' : ' (it comes on with a flat pattern)'}.
+            The SLM sits in the same pupil plane, so on an ideal panel the result is identical; a real panel adds its pixelation and
+            quantization. The aberration offsets stay here.
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <button
+              type="button"
+              className="rounded-md border px-2.5 py-1 disabled:opacity-50"
+              disabled={!ZERNIKE_KEYS.some((k) => params[k] !== 0)}
+              title="Display these modes on the SLM as a hologram and clear the system aberrations"
+              onClick={() => props.onSendAberrations('move')}
+            >
+              Display on the SLM
+            </button>
+            <button
+              type="button"
+              className="rounded-md border px-2.5 py-1 disabled:opacity-50"
+              disabled={!ZERNIKE_KEYS.some((k) => params[k] !== 0)}
+              title="Put the opposite phase on the SLM, leaving the system aberrations in place (adaptive-optics correction)"
+              onClick={() => props.onSendAberrations('correct')}
+            >
+              Correct on the SLM
+            </button>
+          </div>
+        </div>
+      )}
+      {def.id === 'objective' && derived && (
+        <p className="text-xs text-muted-foreground">
+          α = {((derived.alpha * 180) / Math.PI).toFixed(1)}° in the immersion, {((derived.alpha3_eff * 180) / Math.PI).toFixed(1)}° in the sample
+          {params.n1 * Math.sin(derived.alpha_eff) > params.n3 ? ' (part of the aperture is beyond the critical angle: evanescent in the sample)' : ''}. Pupil radius r₀ = {derived.r0.toFixed(0)} µm.
+        </p>
+      )}
+      {def.id === 'sample' && <ImagingSection imaging={props.imaging} onImaging={props.onImaging} imagingStatus={props.imagingStatus} />}
+      {def.id === 'window' && derived && params.Window === 'CUSTOM' && (
+        <p className="text-xs text-muted-foreground">
+          The window clips the aperture to an effective NA of {derived.na_eff.toFixed(3)} (α = {((derived.alpha_eff * 180) / Math.PI).toFixed(1)}°).
+        </p>
+      )}
+      {def.id === 'sample' && derived && Math.abs(derived.dfoc) > 1e-3 && (
+        <p className="text-xs text-muted-foreground">
+          The index mismatch shifts the focus by {derived.dfoc > 0 ? '+' : ''}
+          {derived.dfoc.toFixed(2)} µm from its nominal position.
+        </p>
+      )}
+      {def.id === 'phaseplate' && params.SLM && (params.Mode === 'GAUSSIAN' || params.Mode === 'LOADED') && (
+        <p className="text-xs text-muted-foreground">The pattern is on the SLM; this plate is flat.</p>
+      )}
+    </div>
+  );
+}
+
 export function Inspector(props: Props) {
-  const { params, effective, derived, selected, onSelect, onChange, design, onDesign } = props;
-  const def = selected ? COMPONENT_BY_ID[selected] : null;
+  const { effective, derived, selected, onSelect, onClose, scenePicker } = props;
+  const [derivedOpen, setDerivedOpen] = useState(false);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* component chips */}
-      <div className="flex flex-wrap gap-1 border-b p-2">
+      {/* title */}
+      <div className="flex items-start justify-between gap-3 border-b px-4 pb-3 pt-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Playground</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The faser simulator as WebAssembly in your browser: a vectorial PSF for the microscope on the left, computed on your machine.
+            Click a part of the microscope, or open a section below, to change it.
+          </p>
+        </div>
+        {onClose && (
+          <button type="button" className="rounded-md p-1 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close settings">
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+      {scenePicker && <div className="border-b px-4 py-3">{scenePicker}</div>}
+
+      {/* accordion of the components */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {COMPONENTS.map((c) => {
           const Icon = COMPONENT_ICONS[c.id];
-          const on = selected === c.id;
+          const open = selected === c.id;
           return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect(on ? null : c.id)}
-              className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
-                on ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground hover:border-primary/50 hover:text-foreground',
+            <section key={c.id} className={cn('border-b', open && 'bg-background/60')}>
+              <button
+                type="button"
+                className={cn('flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm hover:bg-accent/60', open ? 'font-semibold text-foreground' : 'text-foreground/90')}
+                onClick={() => onSelect(open ? null : c.id)}
+                aria-expanded={open}
+              >
+                <Icon className={cn('size-4 shrink-0', open ? 'text-primary' : 'text-muted-foreground')} />
+                <span className="flex-1">{c.title}</span>
+                <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+              </button>
+              {open && (
+                <div className="px-4 pb-4 pt-1">
+                  <SectionBody def={c} {...props} />
+                </div>
               )}
-              title={c.summary}
-            >
-              <Icon className="size-3" />
-              {c.title}
-            </button>
+            </section>
           );
         })}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        {!def ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-              <MousePointerClick className="mt-0.5 size-4 shrink-0" />
-              <p>Click a part of the microscope (or a chip above) to unfold its parameters. Drag to orbit, scroll to zoom.</p>
-            </div>
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Derived</h3>
+        <section className={cn('border-b', derivedOpen && 'bg-background/60')}>
+          <button
+            type="button"
+            className={cn('flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm hover:bg-accent/60', derivedOpen ? 'font-semibold' : 'text-foreground/90')}
+            onClick={() => setDerivedOpen((o) => !o)}
+            aria-expanded={derivedOpen}
+          >
+            <Sigma className={cn('size-4 shrink-0', derivedOpen ? 'text-primary' : 'text-muted-foreground')} />
+            <span className="flex-1">Derived quantities</span>
+            <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', derivedOpen && 'rotate-180')} />
+          </button>
+          {derivedOpen && (
+            <div className="px-4 pb-4 pt-1">
               <DerivedStats params={effective} derived={derived} />
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">{def.title}</h2>
-                <p className="text-xs text-muted-foreground">{def.summary}</p>
-              </div>
-              <button type="button" className="rounded-md p-1 text-muted-foreground hover:bg-accent" onClick={() => onSelect(null)} aria-label="Close">
-                <X className="size-4" />
-              </button>
-            </div>
-
-            {def.id === 'slm' ? (
-              <SlmDesigner params={params} design={design} onDesign={onDesign} onChange={onChange} />
-            ) : def.id === 'focus' ? (
-              <>
-                {def.fields
-                  .filter((f) => !(GRID_KEYS as readonly string[]).includes(f.key))
-                  .map((f) => (
-                    <FieldRow key={f.key} field={f} params={params} value={params[f.key]} onChange={onChange} />
-                  ))}
-                <GridSection {...props} />
-              </>
-            ) : (
-              def.fields.map((f) => <FieldRow key={f.key} field={f} params={params} value={params[f.key]} onChange={onChange} />)
-            )}
-
-            {def.id === 'pupil' && (
-              <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
-                <p className="text-xs text-muted-foreground">
-                  Send these modes to the spatial light modulator{design.enabled ? ' (on top of its pattern)' : ' (it comes on with a flat pattern)'}.
-                  The SLM sits in the same pupil plane, so on an ideal panel the result is identical; a real panel adds its pixelation and
-                  quantization. The aberration offsets stay here.
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <button
-                    type="button"
-                    className="rounded-md border px-2.5 py-1 disabled:opacity-50"
-                    disabled={!ZERNIKE_KEYS.some((k) => params[k] !== 0)}
-                    title="Display these modes on the SLM as a hologram and clear the system aberrations"
-                    onClick={() => props.onSendAberrations('move')}
-                  >
-                    Display on the SLM
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md border px-2.5 py-1 disabled:opacity-50"
-                    disabled={!ZERNIKE_KEYS.some((k) => params[k] !== 0)}
-                    title="Put the opposite phase on the SLM, leaving the system aberrations in place (adaptive-optics correction)"
-                    onClick={() => props.onSendAberrations('correct')}
-                  >
-                    Correct on the SLM
-                  </button>
-                </div>
-              </div>
-            )}
-            {def.id === 'objective' && derived && (
-              <p className="text-xs text-muted-foreground">
-                α = {((derived.alpha * 180) / Math.PI).toFixed(1)}° in the immersion, {((derived.alpha3_eff * 180) / Math.PI).toFixed(1)}° in the sample
-                {params.n1 * Math.sin(derived.alpha_eff) > params.n3 ? ' (part of the aperture is beyond the critical angle: evanescent in the sample)' : ''}. Pupil radius r₀ = {derived.r0.toFixed(0)} µm.
-              </p>
-            )}
-            {def.id === 'sample' && <ImagingSection imaging={props.imaging} onImaging={props.onImaging} imagingStatus={props.imagingStatus} />}
-            {def.id === 'window' && derived && params.Window === 'CUSTOM' && (
-              <p className="text-xs text-muted-foreground">
-                The window clips the aperture to an effective NA of {derived.na_eff.toFixed(3)} (α = {((derived.alpha_eff * 180) / Math.PI).toFixed(1)}°).
-              </p>
-            )}
-            {def.id === 'sample' && derived && Math.abs(derived.dfoc) > 1e-3 && (
-              <p className="text-xs text-muted-foreground">
-                The index mismatch shifts the focus by {derived.dfoc > 0 ? '+' : ''}
-                {derived.dfoc.toFixed(2)} µm from its nominal position.
-              </p>
-            )}
-            {def.id === 'phaseplate' && params.SLM && (params.Mode === 'GAUSSIAN' || params.Mode === 'LOADED') && (
-              <p className="text-xs text-muted-foreground">The pattern is on the SLM; this plate is flat.</p>
-            )}
-          </div>
-        )}
+          )}
+        </section>
       </div>
     </div>
   );

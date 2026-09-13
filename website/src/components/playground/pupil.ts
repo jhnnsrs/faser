@@ -61,7 +61,7 @@ function transparentDisc(canvas: HTMLCanvasElement, size: number, fill: (x: numb
 export function drawPhasePlate(canvas: HTMLCanvasElement, p: Params, size = 128) {
   const flat = p.Mode === 'GAUSSIAN' || p.Mode === 'LOADED';
   transparentDisc(canvas, size, (x, y) => {
-    if (flat) return [200, 225, 255, 70];
+    if (flat) return [200, 225, 255, 110];
     const [r, g, b] = phaseColor(phasePlatePhase(p, x, y), 0.8, 0.55);
     return [r, g, b, 235];
   });
@@ -69,7 +69,7 @@ export function drawPhasePlate(canvas: HTMLCanvasElement, p: Params, size = 128)
 
 /** The polarization state drawn on a faint wave plate. */
 export function drawPolarizationPlate(canvas: HTMLCanvasElement, p: Params, size = 128) {
-  const ctx = transparentDisc(canvas, size, () => [235, 220, 255, 60]);
+  const ctx = transparentDisc(canvas, size, () => [235, 220, 255, 120]);
   if (ctx) polarizationOverlay(ctx, p, size / 2);
 }
 

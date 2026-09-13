@@ -9,7 +9,8 @@ import { cn } from '@/lib/cn';
 import type { ComponentId, Derived, Params } from './params';
 import { drawPhasePlate, drawPolarizationPlate, drawPupil, wavelengthToRgb } from './pupil';
 import { drawSlmPanel } from './slm';
-import type { Volume } from './volume';
+import { argmax3, type Volume } from './volume';
+import { paintSlice } from './slice-canvas';
 import { DEFAULT_RENDER, VolumeMesh, type RenderSettings } from './volume-viewer';
 
 /**
@@ -61,6 +62,10 @@ export interface MicroscopeProps {
   onFocusScreen?: (pt: { x: number; y: number } | null) => void;
   /** The synthetic sample of the imaging simulation, drawn at the focus instead of the bead. */
   sample?: Volume | null;
+  /** What the camera records: shown on the image plane of the detector arm. */
+  detector?: { volume: Volume; brightestPlane: boolean; render: RenderSettings } | null;
+  /** Draw the detection arm (dichroic, emission, camera with its image plane). */
+  showDetector?: boolean;
   selected: ComponentId | null;
   hovered: ComponentId | null;
   onSelect: (id: ComponentId | null) => void;
@@ -171,12 +176,31 @@ function Frustum({
  * A canvas-backed texture that is redrawn by `draw` whenever `deps` change.
  * Returns the canvas (to create the texture from) and the ref to attach to it.
  */
-function useCanvasTexture(draw: (canvas: HTMLCanvasElement) => void, deps: unknown[]): [HTMLCanvasElement, React.RefObject<THREE.CanvasTexture | null>] {
-  const [canvas] = useState(() => document.createElement('canvas'));
+function useCanvasTexture(
+  draw: (canvas: HTMLCanvasElement) => void,
+  deps: unknown[],
+  size = 256,
+): [HTMLCanvasElement, React.RefObject<THREE.CanvasTexture | null>] {
+  // Pre-sized: three.js allocates immutable texture storage at the first
+  // upload, so the canvas must already have its final size then.
+  const [canvas] = useState(() => {
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    return c;
+  });
   const ref = useRef<THREE.CanvasTexture>(null);
+  const uploaded = useRef<[number, number]>([size, size]);
   useEffect(() => {
     draw(canvas);
-    if (ref.current) ref.current.needsUpdate = true;
+    const tex = ref.current;
+    if (!tex) return;
+    // a canvas that changed size needs new storage, not just a re-upload
+    if (uploaded.current[0] !== canvas.width || uploaded.current[1] !== canvas.height) {
+      tex.dispose();
+      uploaded.current = [canvas.width, canvas.height];
+    }
+    tex.needsUpdate = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   return [canvas, ref];
@@ -209,15 +233,15 @@ function StackDisc({
         <boxGeometry args={[Math.max(rail - radius, 0.1), 0.1, 0.16]} />
         <meshStandardMaterial color={METAL} metalness={0.7} roughness={0.35} />
       </mesh>
-      {/* the element itself, textured on both faces */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+      {/* the element itself, textured on both faces, drawn after the beam */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
         <circleGeometry args={[radius, 64]} />
         <meshBasicMaterial transparent toneMapped={false} side={THREE.DoubleSide} depthWrite={false}>
           <canvasTexture ref={texRef} attach="map" args={[canvas]} colorSpace={THREE.SRGBColorSpace} />
         </meshBasicMaterial>
       </mesh>
       {(tone.on || tone.hov) && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} renderOrder={2}>
           <ringGeometry args={[radius + 0.02, radius + 0.14, 64]} />
           <meshBasicMaterial color={HI} transparent opacity={tone.on ? 0.9 : 0.5} side={THREE.DoubleSide} />
         </mesh>
@@ -231,7 +255,12 @@ const SAMPLE_RENDER: RenderSettings = { ...DEFAULT_RENDER, mode: 'composite', co
 /** Drawn size (scene units) of the longest side of the sample volume; the real one is a few µm. */
 const SAMPLE_SIZE = 2.6;
 
-function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen, sample }: MicroscopeProps & { resetKey: number }) {
+/** Height of the dichroic above the back pupil, and the detector's distance from the axis (units). */
+const DICHROIC_Y = 0.75;
+const DETECTOR_X = 3.4;
+const EMISSION = '#9dff8a';
+
+function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen, sample, detector, showDetector = true }: MicroscopeProps & { resetKey: number }) {
   useCursor(hovered != null, 'pointer', 'auto');
   const show = (id: ComponentId) => labels === 'always' || hovered === id || selected === id;
   const beamColor = useMemo(() => {
@@ -283,8 +312,32 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
 
   // Textures
   const [pupilCanvas, pupilTex] = useCanvasTexture((c) => d && drawPupil(c, p, d, 256), [p, d]);
-  const [plateCanvas, plateTex] = useCanvasTexture((c) => drawPhasePlate(c, p, 128), [p.Mode, p.VC, p.RC, p.Ring_Radius, p.Mask_offset_x, p.Mask_offset_y, p.Nxy]);
-  const [waveCanvas, waveTex] = useCanvasTexture((c) => drawPolarizationPlate(c, p, 128), [p.Polarization, p.Psi, p.Epsilon]);
+  const [plateCanvas, plateTex] = useCanvasTexture((c) => drawPhasePlate(c, p, 128), [p.Mode, p.VC, p.RC, p.Ring_Radius, p.Mask_offset_x, p.Mask_offset_y, p.Nxy], 128);
+  const [waveCanvas, waveTex] = useCanvasTexture((c) => drawPolarizationPlate(c, p, 128), [p.Polarization, p.Psi, p.Epsilon], 128);
+  const [imageCanvas, imageTex] = useCanvasTexture(
+    (c) => {
+      if (!detector) {
+        c.width = 64;
+        c.height = 64;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#0b0b10';
+          ctx.fillRect(0, 0, 64, 64);
+        }
+        return;
+      }
+      const { volume, brightestPlane, render } = detector;
+      const index = brightestPlane ? argmax3(volume)[0] : Math.floor(volume.nz / 2);
+      paintSlice(c, {
+        volume,
+        plane: 'xy',
+        index,
+        colormap: render.colormap,
+        mapping: render.log ? { kind: 'log', decades: render.logDecades } : { kind: 'linear', gamma: render.gamma },
+      });
+    },
+    [detector],
+  );
   const [slmCanvas, slmTex] = useCanvasTexture(
     (c) => {
       if (p.SLM) drawSlmPanel(c, p.SLM, p.SLM.phase, 256);
@@ -481,8 +534,8 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
 
             {/* Illumination optics stacked on the axis above the back pupil */}
             <group position={[0, BODY, 0]}>
-              {/* the collimated beam coming down from the laser */}
-              <mesh position={[0, STACK.laser / 2, 0]}>
+              {/* the collimated beam coming down from the laser (drawn before the optics in it) */}
+              <mesh position={[0, STACK.laser / 2, 0]} renderOrder={-1}>
                 <cylinderGeometry args={[rBeam, rBeam, STACK.laser, 40, 1, true]} />
                 <meshBasicMaterial color={beamColor} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
               </mesh>
@@ -491,6 +544,51 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
                 <boxGeometry args={[0.18, STACK.laser + LASER_LENGTH, 0.18]} />
                 <meshStandardMaterial color={METAL} metalness={0.7} roughness={0.35} />
               </mesh>
+
+              {/* Detection: a dichroic above the pupil folds the emission to a camera on the -x side */}
+              {showDetector && (
+              <>
+              <mesh position={[0, DICHROIC_Y, 0]} rotation={[0, 0, Math.PI / 4]}>
+                <boxGeometry args={[0.06, 2 * rBeam + 0.6, 2 * rBeam + 0.6]} />
+                <meshPhysicalMaterial color="#b9d7ff" metalness={0.2} roughness={0.1} transparent opacity={0.45} />
+              </mesh>
+              <mesh position={[0, DICHROIC_Y / 2, 0]}>
+                <cylinderGeometry args={[rBeam * 0.6, rBeam * 0.6, DICHROIC_Y, 32, 1, true]} />
+                <meshBasicMaterial color={EMISSION} transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
+              </mesh>
+              <mesh position={[-(rBeam + DETECTOR_X) / 2, DICHROIC_Y, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[rBeam * 0.6, rBeam * 0.6, rBeam + DETECTOR_X, 32, 1, true]} />
+                <meshBasicMaterial color={EMISSION} transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
+              </mesh>
+              <Part {...part('sample')}>
+                <group position={[-(rBeam + DETECTOR_X), DICHROIC_Y, 0]}>
+                  {/* the image plane, facing the dichroic */}
+                  <mesh rotation={[0, Math.PI / 2, 0]}>
+                    <planeGeometry args={[2.6, 2.6]} />
+                    <meshBasicMaterial toneMapped={false} side={THREE.DoubleSide}>
+                      <canvasTexture ref={imageTex} attach="map" args={[imageCanvas]} colorSpace={THREE.SRGBColorSpace} />
+                    </meshBasicMaterial>
+                  </mesh>
+                  <mesh rotation={[0, Math.PI / 2, 0]} position={[-0.01, 0, 0]}>
+                    <ringGeometry args={[1.3 * Math.SQRT2, 1.3 * Math.SQRT2 + 0.12, 4, 1, Math.PI / 4]} />
+                    <meshStandardMaterial color={tone.sample.on || tone.sample.hov ? HI : METAL} metalness={0.7} roughness={0.35} side={THREE.DoubleSide} />
+                  </mesh>
+                  {/* camera body behind the plane */}
+                  <mesh position={[-0.7, 0, 0]}>
+                    <boxGeometry args={[1.3, 3.0, 3.0]} />
+                    <meshStandardMaterial color={METAL_DARK} metalness={0.6} roughness={0.5} emissive={tone.sample.emissive} emissiveIntensity={tone.sample.emissiveIntensity} />
+                  </mesh>
+                </group>
+              </Part>
+              {show('sample') && (
+                <Label position={[-(rBeam + DETECTOR_X), DICHROIC_Y + 1.9, 0]} active={isOn('sample')} onClick={() => onSelect('sample')}>
+                  {detector
+                    ? `camera: ${detector.brightestPlane ? 'image of the bead' : 'image of the sample'}, ${detector.volume.sizeX.toFixed(1)} µm across`
+                    : 'camera (no image yet)'}
+                </Label>
+              )}
+              </>
+              )}
 
               {/* SLM: a square panel, only when one is in the beam path */}
               {!hasSlm && ghost('slm') && <Ghost position={[0, STACK.slm, 0]} size={[2 * rBeam + 0.8, 0.14, 2 * rBeam + 0.8]} />}
@@ -815,7 +913,7 @@ export function MicroscopeScene(props: MicroscopeProps) {
       >
         <Scene {...props} resetKey={resetKey} />
       </Canvas>
-      <div className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="pointer-events-none absolute bottom-2 left-2 hidden flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:flex">
         <span>
           <kbd className="pg-kbd">drag</kbd> move
         </span>
