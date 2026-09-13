@@ -18,6 +18,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+# the website's helpers are source, not a Python build directory
+!website/src/lib/
 parts/
 sdist/
 var/

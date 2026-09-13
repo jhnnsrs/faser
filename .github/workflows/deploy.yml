@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: website
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # The playground runs the simulator as WebAssembly (rust/wasm).
       - name: Install Rust toolchain with the wasm32 target
@@ -43,7 +43,7 @@ jobs:
         with:
           package_json_file: website/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
