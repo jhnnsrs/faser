@@ -8,6 +8,7 @@ import { zernikeRange } from './zernike';
 import {
   COMPONENTS,
   COMPONENT_BY_ID,
+  DEFAULTS,
   GRID_KEYS,
   type ComponentDef,
   ZERNIKE_FIELDS,
@@ -21,6 +22,7 @@ import {
   type Params,
 } from './params';
 import { drawSlmPanel, hasZernike, imageToGray, resampleSquare, SLM_LEVELS, SLM_PATTERNS, SLM_SIZES, designPhases, type SlmDesign } from './slm';
+import { ZERNIKE_KEYS as ZKEYS } from './params';
 import { KIND_DEFAULTS, SAMPLE_OPTIONS, type ImagingSettings } from './use-imaging';
 import type { SampleKind } from './volume';
 
@@ -705,6 +707,74 @@ function SectionBody({ def, ...props }: Props & { def: ComponentDef }) {
   );
 }
 
+/** Short names for the badges that show what differs from the standard PSF. */
+const SHORT: Partial<Record<keyof Params, string>> = {
+  NA: 'NA', n1: 'n₁', n2: 'n₂', n3: 'n₃', Wavelength: 'λ', Waist: 'waist', WD: 'f', Collar: 'collar',
+  Thickness: 't', Tilt: 'tilt', Depth: 'depth', Polarization: '', Psi: 'ψ', Epsilon: 'ε', Mode: '',
+  VC: 'charge', RC: 'step', Ring_Radius: 'r', p: 'mix', Mask_offset_x: 'mask x', Mask_offset_y: 'mask y',
+  Ampl_offset_x: 'beam x', Ampl_offset_y: 'beam y', Aberration_offset_x: 'ab. x', Aberration_offset_y: 'ab. y',
+  L_obs_XY: 'XY', L_obs_Z: 'Z', Normalize: 'norm', Theta_sampling: 'θ', Nxy: 'Nxy', Nz: 'Nz', Ntheta: 'Nθ', Nphi: 'Nφ',
+  Window: '', Wind_Radius: 'r', Wind_Depth: 'd',
+};
+
+function fmtValue(field: Field, v: Params[keyof Params]): string {
+  if (isSelect(field)) {
+    const opt = field.options.find((o) => String(o.value) === String(v));
+    const label = (opt?.label ?? String(v)).replace(/\s*\(.*\)$/, '');
+    return label.length > 18 ? `${label.slice(0, 17)}…` : label.toLowerCase();
+  }
+  const n = Number(v);
+  const text = Math.abs(n) >= 100 ? n.toFixed(0) : Number(n.toFixed(3)).toString();
+  return field.unit ? `${text} ${field.unit}` : text;
+}
+
+/** What a section changes relative to the default (standard PSF): short "name value" badges. */
+function sectionChanges(c: ComponentDef, props: Props): string[] {
+  const { params, design, imaging, autoGridOn } = props;
+  const out: string[] = [];
+  if (c.id === 'slm') {
+    if (design.enabled && params.SLM) {
+      out.push(`${SLM_PATTERNS.find((x) => x.value === design.pattern)?.label.toLowerCase() ?? design.pattern}`);
+      out.push(`${design.n}², ${design.levels > 1 ? `${design.levels} levels` : 'continuous'}`);
+      if (design.fillFactor < 1) out.push(`fill ${design.fillFactor.toFixed(2)}`);
+      const z = ZKEYS.filter((k) => design.zernike[k] !== 0).length;
+      if (z) out.push(`${z} zernike mode${z > 1 ? 's' : ''}`);
+    }
+    return out;
+  }
+  for (const f of c.fields) {
+    if (c.id === 'focus' && (GRID_KEYS as readonly string[]).includes(f.key)) continue;
+    const v = params[f.key];
+    if (v === DEFAULTS[f.key]) continue;
+    if (c.id === 'window' && f.key !== 'Window' && params.Window !== 'CUSTOM') continue;
+    const name = SHORT[f.key] ?? f.label.toLowerCase();
+    out.push(name ? `${name} ${fmtValue(f, v)}` : fmtValue(f, v));
+  }
+  if (c.id === 'focus' && !autoGridOn) out.push(`manual grid ${params.Nxy}² × ${params.Nz}`);
+  if (c.id === 'sample' && imaging.mode === 'sample') out.push(`imaging ${SAMPLE_OPTIONS.find((k) => k.value === imaging.kind)?.label.toLowerCase() ?? imaging.kind}`);
+  return out;
+}
+
+function ChangeBadges({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  const shown = items.slice(0, 2);
+  const more = items.length - shown.length;
+  return (
+    <span className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+      {shown.map((t) => (
+        <span key={t} className="max-w-[9rem] truncate rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium leading-4 text-primary" title={t}>
+          {t}
+        </span>
+      ))}
+      {more > 0 && (
+        <span className="rounded-full bg-muted px-1.5 py-px text-[10px] leading-4 text-muted-foreground" title={items.slice(2).join(', ')}>
+          +{more} more
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function Inspector(props: Props) {
   const { effective, derived, selected, onSelect, onClose, scenePicker, footer } = props;
   const [derivedOpen, setDerivedOpen] = useState(false);
@@ -742,7 +812,10 @@ export function Inspector(props: Props) {
                 aria-expanded={open}
               >
                 <Icon className={cn('size-4 shrink-0', open ? 'text-primary' : 'text-muted-foreground')} />
-                <span className="flex-1">{c.title}</span>
+                <span className="shrink-0">{c.title}</span>
+                <span className="flex min-w-0 flex-1 justify-end">
+                  <ChangeBadges items={sectionChanges(c, props)} />
+                </span>
                 <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
               </button>
               {open && (
