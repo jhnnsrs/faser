@@ -121,3 +121,29 @@ html {
 .pg-label-muted {
   color: var(--color-fd-muted-foreground);
 }
+.pg-label-button {
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  transition: border-color 120ms, background-color 120ms;
+}
+.pg-label-button:hover {
+  border-color: var(--color-fd-primary);
+  color: var(--color-fd-foreground);
+}
+.pg-label-active {
+  border-color: var(--color-fd-primary);
+  background: color-mix(in oklab, var(--color-fd-primary) 18%, var(--color-fd-popover));
+  color: var(--color-fd-foreground);
+}
+.pg-kbd {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--color-fd-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-fd-card);
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+}

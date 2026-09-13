@@ -60,6 +60,55 @@ class polarization(int, Enum):
     AZIMUTHAL = 3
 
 
+class theta_sampling(str, Enum):
+    """How the focusing angle is sampled by the native backend.
+
+    UNIFORM is the midpoint rule on equal steps (the numpy reference model).
+    ADAPTIVE integrates the part of the aperture below the critical angle of
+    the sample over cos(theta3) instead, which converges where the uniform
+    rule does not (index mismatch past the critical angle, e.g. an oil
+    objective imaging into water); identical to UNIFORM when there is no
+    critical angle inside the aperture.
+    """
+
+    UNIFORM = "UNIFORM"
+    ADAPTIVE = "ADAPTIVE"
+
+
+class SLMConfig(BaseModel):
+    """A spatial light modulator conjugate to the back pupil.
+
+    ``phase`` holds ``n * n`` pixel phases in radians, row-major with the
+    first row at +y, covering the square ``[-extent * r0, extent * r0]²`` of
+    the pupil. Phases are wrapped to 2π and quantized to ``levels`` when
+    sampled (0 = continuous); the dead space between pixels (``fill_factor``
+    < 1) passes the beam unmodulated. Multiplies the pupil on top of the
+    phase mask (``Mode``) and the Zernike aberrations.
+    """
+
+    n: int = Field(gt=0, description="Pixels per side")
+    phase: List[float] = Field(description="n*n pixel phases in radians, row-major, first row at +y")
+    extent: float = Field(default=1.0, gt=0, description="Panel half-width in units of the pupil radius r0")
+    levels: int = Field(default=0, ge=0, description="Phase levels (0 or 1 = continuous, 256 = 8-bit)")
+    fill_factor: float = Field(default=1.0, gt=0, le=1, description="Fraction of each pixel that modulates the phase")
+    offset_x: float = Field(default=0.0, description="Panel misalignment in units of r0")
+    offset_y: float = Field(default=0.0, description="Panel misalignment in units of r0")
+
+    @model_validator(mode="after")
+    def _check_shape(self):
+        if len(self.phase) != self.n * self.n:
+            raise ValueError(f"SLM: expected {self.n * self.n} phase values ({self.n}²), got {len(self.phase)}")
+        return self
+
+    @classmethod
+    def from_array(cls, phase: np.ndarray, **kwargs) -> "SLMConfig":
+        """Build from a square 2-D array of phases (first row at +y)."""
+        arr = np.asarray(phase, dtype=float)
+        if arr.ndim != 2 or arr.shape[0] != arr.shape[1]:
+            raise ValueError("the SLM pattern must be a square 2-D array")
+        return cls(n=arr.shape[0], phase=arr.ravel().tolist(), **kwargs)
+
+
 class AberrationFloat(float):
     @classmethod
     def __get_validators__(cls):
@@ -252,6 +301,16 @@ class PSFConfig(BaseModel):
         default=None, description="Loaded Phasemak"
     )
 
+    SLM: Optional[SLMConfig] = Field(
+        default=None,
+        description="Spatial light modulator conjugate to the back pupil (native backend only)",
+    )
+
+    Theta_sampling: theta_sampling = Field(
+        default=theta_sampling.UNIFORM,
+        description="Focusing-angle quadrature: UNIFORM (numpy reference) or ADAPTIVE (native backend, resolves the critical angle)",
+    )
+
     # Noise Parameters
     Add_noise: noise = noise.YES  # Add noise to the PSF
 
@@ -400,8 +459,8 @@ class PSFConfig(BaseModel):
                 "numerical_aperature must be smaller than the refractive index"
             )
         if self.Mode == mode.LOADED:
-            if self.loaded_phase_mask is None:
-                raise ValueError("You need to load a phase mask to use the loaded mode")
+            if self.loaded_phase_mask is None and self.SLM is None:
+                raise ValueError("You need to load a phase mask (loaded_phase_mask or SLM) to use the loaded mode")
 
         return self
 

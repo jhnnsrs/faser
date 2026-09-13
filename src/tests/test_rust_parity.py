@@ -38,9 +38,10 @@ def test_native_matches_numpy(name):
     np.testing.assert_allclose(out, ref, rtol=0, atol=1e-10)
 
 
-def test_loaded_mode_not_supported():
+def test_loaded_mode_maps_the_phase_mask_to_an_slm():
     from faser.generators.vectorial.stephane.rust_backend import to_native_config
 
     config = PSFConfig(**SMALL, Mode=mode.LOADED, loaded_phase_mask=np.zeros((3, 3)))
-    with pytest.raises(NotImplementedError):
-        to_native_config(config)
+    native = to_native_config(config)
+    assert native.slm is not None
+    assert native.slm.n == 3 and len(native.slm.phase) == 9

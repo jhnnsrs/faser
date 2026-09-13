@@ -9,7 +9,7 @@ use numpy::{PyArray, PyArray3};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-pub use faser_core::{Mode, Normalize, Params, PsfConfig};
+pub use faser_core::{Mode, Normalize, Params, PsfConfig, Slm, ThetaSampling};
 
 /// Returns the PSF intensity as a float64 array of shape (Nz, Ny, Nx).
 #[pyfunction]
@@ -40,6 +40,8 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PsfConfig>()?;
     m.add_class::<Mode>()?;
     m.add_class::<Normalize>()?;
+    m.add_class::<Slm>()?;
+    m.add_class::<ThetaSampling>()?;
     m.add_function(wrap_pyfunction!(generate_psf, m)?)?;
     m.add_function(wrap_pyfunction!(generate_psf_json, m)?)?;
     Ok(())

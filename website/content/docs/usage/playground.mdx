@@ -6,22 +6,57 @@ description: Generate, compare and image with PSFs directly on this website, no 
 The faser simulator is compiled to WebAssembly, so the full vectorial model runs in your browser. Open the [Playground](/playground) to try it.
 
 <Callout type="info">
-Everything is computed on your machine; nothing is uploaded. Large grids and many integration steps take proportionally longer on a single core, so start small.
+Everything is computed on your machine; nothing is uploaded. The grid is sized automatically for an accurate result; a fast preview keeps the page responsive while you explore.
 </Callout>
 
-## Panes
+## The microscope
 
-The parameter panel on the left drives all three panes.
+The playground is built around a 3D model of the setup that follows the parameters live. Every part of it is clickable: click the objective, the coverslip, the sample, the focus, the back pupil, or any element of the illumination arm (laser, polarization optics, phase plate, spatial light modulator) and its parameters unfold in the inspector next to the scene. Drag to orbit, scroll to zoom; the chips above the inspector reach the same groups.
 
-### PSF & microscope
+- **Laser**: wavelength and the Gaussian beam profile on the pupil.
+- **Polarization**: elliptical (direction and ellipticity), radial or azimuthal input.
+- **Phase plate**: the analytic masks (vortex, π disc, incoherent donut + bottle mix) with their offsets.
+- **Spatial light modulator**: see below.
+- **Objective**: NA, immersion index, correction collar and focal length.
+- **Back pupil & aberrations**: Zernike modes. The disc on top of the objective shows the pupil as the simulator sees it: brightness is amplitude, hue is phase (phase plate, SLM and aberrations combined), with the polarization drawn on top.
+- **Coverslip**: thickness, index and tilt.
+- **Sample**: index and imaging depth. Index mismatch shifts the focus; the nominal focus is drawn as a wire sphere.
+- **Cranial window**: an optional skull opening on the coverslip that clips the focusing cone.
+- **Focus & sampling**: the observation volume, normalization and the simulation grid.
 
-- **Microscope**: an idealized model of the optical setup that follows the parameters live: the focusing cone (semi-aperture from NA and the immersion index), the immersion medium, the coverslip (thickness, tilt and refractive index), the sample with the nominal and the actual, index-mismatch shifted focus, and the back pupil with the amplitude profile, the phase mask and the aberration phase.
-- **PSF volume**: a ray-marched rendering of the simulated intensity, either as a maximum intensity projection or with emission-absorption compositing. Drag to orbit, scroll to zoom.
-- **Slices**: the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling.
+Optional elements (the phase plate, the SLM, the cranial window, and the coverslip at zero thickness) are only drawn when they are part of the setup; select their chip to see a ghost outline of where they would go and to switch them on.
+
+### Accuracy without tuning
+
+The simulation grid is sized automatically from the optics, so you do not have to touch `Nxy`, `Nz`, `Ntheta` or `Nphi`:
+
+- the lateral voxel is a fifth of λ / (2 NA), the axial one follows the axial band limit;
+- the number of φ nodes lies above the highest azimuthal harmonic present at the corner of the field (plus the vortex charge), so the trapezoid rule is exact and no aliased ghost foci fall inside the volume;
+- the number of θ nodes follows the fastest phase variation of the integrand (lateral and axial plane-wave terms, coverslip / depth aberration, Zernike modes) at eight points per 2π.
+
+While you drag a slider a quarter-size preview is computed immediately; the accurate volume follows a third of a second after the parameters settle (a status chip shows which one you are looking at). If the accurate volume would take more than a few seconds, live updates stay in preview mode and **Generate** computes it on demand. The "Focus & sampling" inspector shows the resolved grid and the estimated time, and lets you switch to manual values.
+
+The θ quadrature is **adaptive** by default: when the aperture reaches past the critical angle of the sample (an oil objective imaging into water, say), the axial phase has a square-root singularity at the critical angle and a uniform rule converges poorly. The adaptive rule integrates the sub-critical part over cos θ₃ instead, where that phase is linear; it is identical to the uniform rule whenever there is no critical angle inside the aperture. The same option exists in the Python model (`Theta_sampling`) and the CLI (`--theta_sampling ADAPTIVE`); the default there stays `UNIFORM` to match the numpy reference implementation exactly.
+
+### Spatial light modulator
+
+The illumination arm carries an SLM conjugate to the back pupil. Enable it in its inspector and choose a pattern: a vortex (charge m), a π disc (bottle), a half-moon, a blazed grating (steers the focus by λ / (period · sin α)), an axicon (a ring focus), or your own image (gray → phase). The panel is a real device: choose the resolution (32² to 512² pixels), the number of phase levels (continuous, 8-bit, …, binary), the fill factor (the dead space between pixels passes unmodulated light into the focus, the "zeroth order"), the panel size relative to the pupil and its misalignment. The panel in the 3D scene shows the pattern as the device displays it (wrapped, quantized), and the back pupil shows its effect combined with the phase plate and the aberrations.
+
+The SLM multiplies the pupil on top of the phase plate, so it can replace the plate (set the plate to "None" or "pattern on the SLM") or add to it.
+
+**Zernike layer (adaptive optics).** The SLM designer has the same twelve Zernike modes as the "Back pupil & aberrations" card. They are added to the pattern before wrapping and quantization, so the SLM can carry a vortex and a wavefront correction at once, like a real AO hologram. On the aberration card, *Display on the SLM* moves the system coefficients onto the layer (and clears them), *Correct on the SLM* puts their negative on the layer while the system aberration stays. Both act in the same pupil plane as the simulator's own Zernike phase, so on an ideal panel the two are indistinguishable (max PSF difference below 10⁻³ for a12 = 0.8); what a real panel adds is exactly its device effects: pixel sampling, phase levels (an 8‑bit, 93 % fill‑factor panel leaves a residual of about 1 % of the peak) and dead‑space leakage. The aberration offsets are not transferred. The layer is baked into the `SLM.phase` block of the config file; a loaded config shows it as a loaded pattern with an empty layer. The pattern is saved in `psf_config.json` as an `SLM` block (`n`, `phase`, `extent`, `levels`, `fill_factor`, offsets) that the Python model (`PSFConfig.SLM`, `SLMConfig.from_array`) and the native backend read; `Mode = LOADED` with a `loaded_phase_mask` array is handled the same way.
+
+### The zoom-in on the focus
+
+The PSF floats next to the microscope as a zoom-in tied to the focus by a leader line: a ray-marched rendering of the volume (maximum intensity projection or emission-absorption compositing; drag to orbit), the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling. The derived quantities (angles, effective NA, focus shift, voxel sizes, grid) are in the inspector when nothing is selected.
+
+## Analyses
+
+Two optional analyses open below the microscope.
 
 ### Vectorial vs scalar
 
-The same parameters are run through the scalar Debye integral: same pupil, phase mask, aberrations and coverslip/depth phase, but no polarization coupling and no Fresnel transmission. Both PSFs are shown side by side with a signed difference map (vectorial − scalar) on a diverging scale, and a table of lateral and axial FWHM values. At high NA the vectorial focus is wider and, for linear polarization, elongated along the polarization direction; the scalar model misses that.
+The same parameters are run through the scalar Debye integral: same pupil, phase mask, SLM, aberrations and coverslip/depth phase, but no polarization coupling and no Fresnel transmission. Both PSFs are shown side by side with a signed difference map (vectorial − scalar) on a diverging scale, and a table of lateral and axial FWHM values. At high NA the vectorial focus is wider and, for linear polarization, elongated along the polarization direction; the scalar model misses that.
 
 ### Imaging simulation
 
@@ -29,10 +64,10 @@ A synthetic ground-truth sample is generated on the PSF's voxel grid and convolv
 
 ## Round trip with the desktop tools
 
-The **Download** buttons give you the volume as a 32-bit multi-page TIFF (opens in Fiji/ImageJ and napari with the correct pixel size) and the parameters as `psf_config.json`. That JSON is exactly what the CLI and the napari plugin read and write, so you can continue on the desktop with a bigger grid:
+The **Download** buttons give you the volume as a 32-bit multi-page TIFF (opens in Fiji/ImageJ and napari with the correct pixel size) and the parameters as `psf_config.json`. That JSON is exactly what the CLI and the napari plugin read and write (including the resolved grid, the SLM pattern and the θ sampling), so you can continue on the desktop with a bigger grid or field:
 
 ```bash
-faser --config psf_config.json --nxy 128 --nz 64
+faser --config psf_config.json --nxy 256 --l_obs_xy 4
 ```
 
 The scalar model is also available from Python for the same comparison:
@@ -42,15 +77,15 @@ from faser import _core
 scalar = _core.generate_psf_json(config.model_dump_json(), scalar=True)
 ```
 
-## Grid sizes
+## Cost
 
-The PSF cost scales with `Ntheta × (Nphi + Nz) × Nxy²`. As a rule of thumb in the browser:
+The PSF cost scales with `Ntheta × (Nphi + Nz) × Nxy²`; one core does roughly 300–400 million of these units per second in the browser. Typical automatic grids:
 
-| Nxy | Nz | Ntheta / Nphi | time (single core) |
-| --- | -- | ------------- | ------------------ |
-| 64  | 32 | 40            | ~0.1 s             |
-| 64  | 48 | 60            | ~0.2 s             |
-| 128 | 64 | 60            | ~0.5 s             |
-| 256 | 96 | 100           | several seconds    |
+| Configuration                                | grid (Nxy² × Nz, Nθ, Nφ) | time (single core) |
+| -------------------------------------------- | ------------------------ | ------------------ |
+| Water objective, 1.0 NA, 4 × 4 µm            | 72² × 47, 64, 56         | ~0.1 s             |
+| STED vortex, 1.4 NA oil                      | 76² × 51, 72, 56         | ~0.1 s             |
+| 1.4 NA oil into water, 20 µm deep, 4 × 6 µm  | 116² × 128, 300, 80      | ~2 s               |
+| 1.4 NA oil, 12 × 16 µm field                 | 256² × 128, 344, 184     | ~15 s              |
 
-The imaging simulation adds an FFT over the sample field plus the PSF extent; a 96 × 96 × 48 field with a 64 × 64 × 32 PSF takes well under a second.
+Above a few seconds the accurate volume waits for **Generate**. The imaging simulation adds an FFT over the sample field plus the PSF extent; a 96 × 96 × 48 field with the default PSF takes well under a second.

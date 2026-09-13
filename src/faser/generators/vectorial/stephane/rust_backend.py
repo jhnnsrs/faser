@@ -8,16 +8,36 @@ properties) onto the extension's flat config struct.
 import numpy as np
 
 from faser import _core
-from faser.generators.base import PSFConfig, mode, normalize
+from faser.generators.base import PSFConfig, SLMConfig, mode, normalize, theta_sampling
 
 _MODES = {
     mode.GAUSSIAN: _core.Mode.Gaussian,
     mode.DONUT: _core.Mode.Donut,
     mode.BOTTLE: _core.Mode.Bottle,
     mode.DONUT_BOTTLE: _core.Mode.DonutBottle,
+    # the pattern is displayed on the SLM (see `to_native_slm`)
+    mode.LOADED: _core.Mode.Loaded,
+}
+
+_THETA = {
+    theta_sampling.UNIFORM: _core.ThetaSampling.Uniform,
+    theta_sampling.ADAPTIVE: _core.ThetaSampling.Adaptive,
 }
 
 _ZERNIKE = ["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a12", "a24"]
+
+
+def to_native_slm(s: PSFConfig) -> "_core.Slm | None":
+    """The SLM of a config, or `loaded_phase_mask` (a square 2-D array of
+    phases in radians filling the pupil) as an SLM, or None."""
+    slm = s.SLM
+    if slm is None and s.loaded_phase_mask is not None:
+        slm = SLMConfig.from_array(s.loaded_phase_mask)
+    if slm is None:
+        return None
+    return _core.Slm(
+        slm.n, list(slm.phase), slm.extent, slm.levels, slm.fill_factor, slm.offset_x, slm.offset_y
+    )
 
 
 def to_native_config(s: PSFConfig) -> "_core.PsfConfig":
@@ -42,6 +62,8 @@ def to_native_config(s: PSFConfig) -> "_core.PsfConfig":
     c.mask_offset_x, c.mask_offset_y = s.Mask_offset_x, s.Mask_offset_y
     c.aberration_offset_x, c.aberration_offset_y = s.Aberration_offset_x, s.Aberration_offset_y
     c.vc, c.rc, c.ring_radius, c.p = s.VC, s.RC, s.Ring_Radius, s.p
+    c.slm = to_native_slm(s)
+    c.theta_sampling = _THETA[s.Theta_sampling]
     return c
 
 

@@ -8,7 +8,7 @@
 
 use std::f64::consts::PI;
 
-use crate::{Mode, Normalize, PsfConfig};
+use crate::{Mode, Normalize, PsfConfig, Slm, ThetaSampling};
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -107,6 +107,11 @@ pub struct Params {
     pub Mask_offset_y: f64,
     /// Donut (p) / bottle (1 - p) mix for DONUT BOTTLE
     pub p: f64,
+
+    /// Optional spatial light modulator conjugate to the back pupil; `null` = none.
+    pub SLM: Option<Slm>,
+    /// θ quadrature: "UNIFORM" (the numpy reference) or "ADAPTIVE" (see [`ThetaSampling`]).
+    pub Theta_sampling: ThetaSampling,
 }
 
 impl Default for Params {
@@ -151,6 +156,8 @@ impl Default for Params {
             Mask_offset_x: 0.0,
             Mask_offset_y: 0.0,
             p: 0.5,
+            SLM: None,
+            Theta_sampling: ThetaSampling::Uniform,
         }
     }
 }
@@ -199,8 +206,11 @@ impl Params {
         if !(1..=3).contains(&self.Polarization) {
             return Err("Polarization must be 1 (elliptical), 2 (radial) or 3 (azimuthal)".into());
         }
-        if self.Mode == Mode::Loaded {
-            return Err("Mode LOADED (custom phase mask) is not supported by the native backend".into());
+        if let Some(slm) = &self.SLM {
+            slm.validate()?;
+        }
+        if self.Mode == Mode::Loaded && self.SLM.is_none() {
+            return Err("Mode LOADED needs a phase pattern on the SLM".into());
         }
         if !(self.Wavelength > 0.0) || !(self.WD > 0.0) || !(self.Waist > 0.0) {
             return Err("Wavelength, WD and Waist must be positive".into());
@@ -370,6 +380,8 @@ impl Params {
             rc: self.RC,
             ring_radius: self.Ring_Radius,
             p: self.p,
+            slm: self.SLM.clone(),
+            theta_sampling: self.Theta_sampling,
         })
     }
 }

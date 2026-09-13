@@ -4,7 +4,9 @@
 // and the glue code in ./wasm/ is produced by `pnpm build:wasm`.
 //
 // Protocol (all requests carry an `id` chosen by the page):
-//   -> { id, type: 'generate', params, scalar }   params: psf_config.json object
+//   -> { id, type: 'generate', params, scalar, slmPhase }
+//        params: psf_config.json object (its SLM.phase may be empty when
+//        slmPhase, a Float32Array of the n*n pixel phases, is given)
 //   <- { id, type: 'result', data: Float32Array, nz, ny, nx, max, derived, ms }
 //   -> { id, type: 'derive', params }
 //   <- { id, type: 'derived', derived }
@@ -35,9 +37,9 @@ self.onmessage = async (event) => {
   try {
     await ready;
     if (type === 'generate') {
-      const { params, scalar } = event.data;
+      const { params, scalar, slmPhase } = event.data;
       const t0 = performance.now();
-      const volume = generate_psf(JSON.stringify(params), Boolean(scalar));
+      const volume = generate_psf(JSON.stringify(params), Boolean(scalar), slmPhase ?? new Float32Array(0));
       const data = volume.data;
       const message = {
         id,

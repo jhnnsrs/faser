@@ -6,8 +6,11 @@ The documentation site and in-browser playground for **faser**, published to
 exported as a static site to GitHub Pages.
 
 The playground runs the faser simulator itself: the Rust core in `../rust/core` is
-compiled to WebAssembly (`../rust/wasm`) and driven from a Web Worker, the volume is
-ray-marched with three.js, and an idealized microscope model follows the parameters.
+compiled to WebAssembly (`../rust/wasm`) and driven from two Web Workers (a fast
+preview while dragging, the accurate volume once the parameters settle). The page is
+built around a clickable 3D microscope: selecting a part unfolds its parameters in the
+inspector. The simulation grid is sized automatically from the optics (`physics.ts`),
+and the illumination arm carries a spatial light modulator (`slm.ts`).
 
 ## Quick start
 
@@ -56,9 +59,12 @@ src/app/(home)/               Landing page and the /playground route
 src/app/docs/                 Documentation layout and dynamic pages
 src/app/api/search/           Static Orama search index
 src/app/llms*.txt, llms.mdx   Markdown exports of the docs for LLMs
-src/components/playground/    Parameter panel, worker hook, volume renderer,
-                              microscope model, slice views, TIFF export,
-                              vectorial-vs-scalar comparison, imaging simulation
+src/components/playground/    Clickable microscope model (microscope-scene.tsx),
+                              inspector with the SLM designer (inspector.tsx),
+                              automatic grid sizing (physics.ts), SLM patterns
+                              (slm.ts), worker hook, volume renderer, slice views,
+                              TIFF export, vectorial-vs-scalar comparison,
+                              imaging simulation
 src/components/site/          Provider, search dialog, MDX components, logo
 src/lib/                      Source loader, layout options, base-path helper
 ```

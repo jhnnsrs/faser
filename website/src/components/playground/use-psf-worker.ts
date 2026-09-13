@@ -37,6 +37,15 @@ type Pending =
 
 export type WorkerStatus = 'loading' | 'ready' | 'error';
 
+/** The SLM pixel phases can be large; they are sent as a typed array, not as JSON. */
+function withoutSlmPhase(p: Params): Params {
+  return p.SLM ? { ...p, SLM: { ...p.SLM, phase: [] } } : p;
+}
+
+function slmPhaseArray(p: Params): Float32Array | null {
+  return p.SLM ? Float32Array.from(p.SLM.phase) : null;
+}
+
 /**
  * Runs the WebAssembly simulator in a Web Worker (public/psf-worker.js) so
  * the page and the 3D views stay responsive while a volume is computed.
@@ -128,14 +137,19 @@ export function usePsfWorker() {
   const generate = useCallback(
     (params: Params, scalar = false) =>
       new Promise<PsfResult>((resolve, reject) =>
-        post({ type: 'generate', params, scalar }, { type: 'generate', resolve, reject, params, scalar }),
+        post(
+          { type: 'generate', params: withoutSlmPhase(params), scalar, slmPhase: slmPhaseArray(params) },
+          { type: 'generate', resolve, reject, params, scalar },
+        ),
       ),
     [post],
   );
 
   const derive = useCallback(
     (params: Params) =>
-      new Promise<Derived>((resolve, reject) => post({ type: 'derive', params }, { type: 'derive', resolve, reject })),
+      new Promise<Derived>((resolve, reject) =>
+        post({ type: 'derive', params: withoutSlmPhase(params) }, { type: 'derive', resolve, reject }),
+      ),
     [post],
   );
 

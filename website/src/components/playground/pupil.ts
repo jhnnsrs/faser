@@ -1,11 +1,85 @@
 import type { Derived, Params } from './params';
+import { zernikePhase } from './zernike';
+import { slmFactorAt } from './slm';
+
+/** Phase (rad) of the analytic phase plate (`Mode`) at unit-pupil (x, y), mask offsets applied. */
+export function phasePlatePhase(p: Params, x: number, y: number): number {
+  const off = 1 / p.Nxy; // offsets are in units of r0 / Nxy (see theta_ring)
+  const mx = x - off * p.Mask_offset_x;
+  const my = y - off * p.Mask_offset_y;
+  let phase = 0;
+  const mode = p.Mode;
+  if (mode === 'DONUT' || mode === 'DONUT BOTTLE') phase += p.VC * Math.atan2(my, mx);
+  if ((mode === 'BOTTLE' || mode === 'DONUT BOTTLE') && Math.hypot(mx, my) <= p.Ring_Radius) phase += p.RC * Math.PI;
+  return phase;
+}
+
+/** Transmission [amplitude, phase] of the SLM at unit-pupil (x, y), as the simulator samples it. */
+export function slmFactor(p: Params, x: number, y: number): [number, number] {
+  return p.SLM ? slmFactorAt(p.SLM, p.SLM.phase, x, y) : [1, 0];
+}
+
+/** Colour of a phase: hue wheel, one turn per 2π. */
+export function phaseColor(phase: number, saturation = 0.85, lightness = 0.5): [number, number, number] {
+  return hsl((((phase / (2 * Math.PI)) % 1) + 1) % 1, saturation, lightness);
+}
+
+function transparentDisc(canvas: HTMLCanvasElement, size: number, fill: (x: number, y: number) => [number, number, number, number] | null) {
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const img = ctx.createImageData(size, size);
+  const px = img.data;
+  const half = size / 2;
+  for (let j = 0; j < size; j++) {
+    for (let i = 0; i < size; i++) {
+      const x = (i + 0.5 - half) / (half * 0.96);
+      const y = -(j + 0.5 - half) / (half * 0.96);
+      const k = (j * size + i) * 4;
+      const c = Math.hypot(x, y) > 1 ? null : fill(x, y);
+      if (!c) {
+        px[k + 3] = 0;
+        continue;
+      }
+      px[k] = c[0];
+      px[k + 1] = c[1];
+      px[k + 2] = c[2];
+      px[k + 3] = c[3];
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(half, half, half * 0.96, 0, Math.PI * 2);
+  ctx.stroke();
+  return ctx;
+}
+
+/** The analytic phase plate alone: hue = phase; a flat plate is a faint glass disc. */
+export function drawPhasePlate(canvas: HTMLCanvasElement, p: Params, size = 128) {
+  const flat = p.Mode === 'GAUSSIAN' || p.Mode === 'LOADED';
+  transparentDisc(canvas, size, (x, y) => {
+    if (flat) return [200, 225, 255, 70];
+    const [r, g, b] = phaseColor(phasePlatePhase(p, x, y), 0.8, 0.55);
+    return [r, g, b, 235];
+  });
+}
+
+/** The polarization state drawn on a faint wave plate. */
+export function drawPolarizationPlate(canvas: HTMLCanvasElement, p: Params, size = 128) {
+  const ctx = transparentDisc(canvas, size, () => [235, 220, 255, 60]);
+  if (ctx) polarizationOverlay(ctx, p, size / 2);
+}
 
 /**
  * Draw the back pupil as the simulator sees it: the Gaussian amplitude, the
- * STED phase mask and the Zernike aberration phase, plus the incident
- * polarization. Phase is mapped to hue, amplitude to brightness, so a flat
- * Gaussian beam is a uniformly coloured disc and a vortex is a hue wheel.
- * Mirrors `amplitude`, `phase_mask` and `zernike` in rust/core/src/lib.rs.
+ * phase plate, the SLM pattern and the Zernike aberration phase, plus the
+ * incident polarization. Phase is mapped to hue, amplitude to brightness, so
+ * a flat Gaussian beam is a uniformly coloured disc and a vortex is a hue
+ * wheel. Mirrors `amplitude`, `phase_mask`, `slm_phase` and `zernike` in
+ * rust/core/src/lib.rs.
  */
 export function drawPupil(canvas: HTMLCanvasElement, p: Params, d: Derived, size = 256) {
   canvas.width = size;
@@ -32,17 +106,12 @@ export function drawPupil(canvas: HTMLCanvasElement, p: Params, d: Derived, size
       // amplitude (µm on the pupil)
       const ax = (x - off * p.Ampl_offset_x) * r0;
       const ay = (y - off * p.Ampl_offset_y) * r0;
-      const amp = Math.exp(-(ax * ax + ay * ay) / (p.Waist * p.Waist));
+      const amp0 = Math.exp(-(ax * ax + ay * ay) / (p.Waist * p.Waist));
 
-      // phase mask
-      let phase = 0;
-      const mx = x - off * p.Mask_offset_x;
-      const my = y - off * p.Mask_offset_y;
-      const mr = Math.hypot(mx, my);
-      const mphi = Math.atan2(my, mx);
-      const mode = p.Mode;
-      if (mode === 'DONUT' || mode === 'DONUT BOTTLE') phase += p.VC * mphi;
-      if ((mode === 'BOTTLE' || mode === 'DONUT BOTTLE') && mr <= p.Ring_Radius) phase += p.RC * Math.PI;
+      // phase plate and SLM
+      const [slmAmp, slmPh] = slmFactor(p, x, y);
+      const amp = amp0 * slmAmp;
+      let phase = phasePlatePhase(p, x, y) + slmPh;
 
       // zernike
       const zx = x - off * p.Aberration_offset_x;
@@ -73,10 +142,14 @@ export function drawPupil(canvas: HTMLCanvasElement, p: Params, d: Derived, size
     ctx.setLineDash([]);
   }
 
-  // Polarization
+  polarizationOverlay(ctx, p, half);
+}
+
+/** Arrows / ellipse showing the incident polarization, centred on (half, half). */
+function polarizationOverlay(ctx: CanvasRenderingContext2D, p: Params, half: number) {
   ctx.strokeStyle = 'rgba(255,255,255,0.95)';
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = Math.max(1.5, half / 50);
   if (p.Polarization === 1) {
     const psi = (p.Psi * Math.PI) / 180;
     const eps = (p.Epsilon * Math.PI) / 180;
@@ -126,30 +199,9 @@ function arrow(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number
   ctx.fill();
 }
 
-/** Zernike phase on the unit pupil, same polynomials as the simulator. */
+/** Zernike phase on the unit pupil from the system coefficients of `p`. */
 export function zernike(x: number, y: number, p: Params): number {
-  const rho = Math.hypot(x, y);
-  const phi = Math.atan2(y, x);
-  const rho2 = rho * rho;
-  const rho3 = rho2 * rho;
-  const rho4 = rho2 * rho2;
-  const rho6 = rho4 * rho2;
-  const s6 = Math.sqrt(6);
-  const s8 = Math.sqrt(8);
-  return (
-    p.a0 +
-    p.a1 * 2 * rho * Math.sin(phi) +
-    p.a2 * 2 * rho * Math.cos(phi) +
-    p.a3 * s6 * rho2 * Math.sin(2 * phi) +
-    p.a4 * Math.sqrt(3) * (2 * rho2 - 1) +
-    p.a5 * s6 * rho2 * Math.cos(2 * phi) +
-    p.a6 * s8 * rho3 * Math.sin(3 * phi) +
-    p.a7 * s8 * (3 * rho3 - 2 * rho) * Math.sin(phi) +
-    p.a8 * s8 * (3 * rho3 - 2 * rho) * Math.cos(phi) +
-    p.a9 * s8 * rho3 * Math.cos(3 * phi) +
-    p.a12 * Math.sqrt(5) * (6 * rho4 - 6 * rho2 + 1) +
-    p.a24 * Math.sqrt(7) * (20 * rho6 - 30 * rho4 + 12 * rho2 - 1)
-  );
+  return zernikePhase(p, x, y);
 }
 
 function hsl(h: number, s: number, l: number): [number, number, number] {

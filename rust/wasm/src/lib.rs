@@ -56,10 +56,18 @@ impl PsfVolume {
 
 /// Compute the PSF for the JSON-serialized parameters. `scalar` selects the
 /// scalar Debye integral (no polarization / Fresnel terms) instead of the
-/// full vectorial model.
+/// full vectorial model. `slm_phase`, if not empty, is the SLM pixel pattern
+/// (row-major, `n*n` radians) and replaces `params.SLM.phase`, so the page
+/// can ship it as a typed array instead of inside the JSON.
 #[wasm_bindgen]
-pub fn generate_psf(json: &str, scalar: bool) -> Result<PsfVolume, JsError> {
-    let params = parse(json)?;
+pub fn generate_psf(json: &str, scalar: bool, slm_phase: &[f32]) -> Result<PsfVolume, JsError> {
+    let mut params = parse(json)?;
+    if !slm_phase.is_empty() {
+        match params.SLM.as_mut() {
+            Some(slm) => slm.phase = slm_phase.iter().map(|&v| v as f64).collect(),
+            None => return Err(JsError::new("slm_phase given but params.SLM is null")),
+        }
+    }
     let derived = serde_json::to_string(&params.derived()).map_err(|e| JsError::new(&e.to_string()))?;
     let volume = faser_core::generate_model(&params, scalar).map_err(|e| JsError::new(&e))?;
     let shape = volume.shape();
@@ -70,10 +78,12 @@ pub fn generate_psf(json: &str, scalar: bool) -> Result<PsfVolume, JsError> {
 }
 
 /// Derived quantities only (cheap; used to draw the microscope model while
-/// the user edits parameters). Returns JSON.
+/// the user edits parameters). Returns JSON. The SLM pattern does not enter
+/// any derived quantity, so `params.SLM` may be sent without its `phase`.
 #[wasm_bindgen]
 pub fn derive(json: &str) -> Result<String, JsError> {
-    let params = parse(json)?;
+    let mut params = parse(json)?;
+    params.SLM = None;
     params.validate().map_err(|e| JsError::new(&e))?;
     serde_json::to_string(&params.derived()).map_err(|e| JsError::new(&e.to_string()))
 }
