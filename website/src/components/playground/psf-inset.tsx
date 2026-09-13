@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { COLORMAPS, type ColormapName } from './colormaps';
 import { SliceCanvas } from './slice-canvas';
@@ -19,8 +19,11 @@ interface Props {
   onRender: (patch: Partial<RenderSettings>) => void;
   /** The convolved image of the simulated sample (imaging simulation open); shown instead of the PSF. */
   image?: Volume | null;
-  /** 'inset': the narrow zoom-in next to the microscope; 'wide': the PSF on its own, volume and slices side by side. */
-  layout?: 'inset' | 'wide';
+  /**
+   * 'overlay': a small card floating over the microscope, the 3D render only
+   * unless expanded; 'inset': the narrow column; 'wide': the PSF on its own.
+   */
+  layout?: 'overlay' | 'inset' | 'wide';
 }
 
 /**
@@ -29,7 +32,10 @@ interface Props {
  */
 export function PsfInset({ result, volume, quality, render, onRender, image, layout = 'inset' }: Props) {
   const wide = layout === 'wide';
+  const overlay = layout === 'overlay';
   const [showControls, setShowControls] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const details = !overlay || expanded;
   const [view, setView] = useState<'psf' | 'image'>('image');
   const showImage = !!image && view === 'image';
   const shown = showImage ? image : volume;
@@ -57,11 +63,24 @@ export function PsfInset({ result, volume, quality, render, onRender, image, lay
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">preview</span>
         )}
         <span className="ml-auto text-[10px] text-muted-foreground">{shown ? `${shown.nx} × ${shown.ny} × ${shown.nz}` : ''}</span>
+        {overlay && (
+          <button
+            type="button"
+            className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            onClick={() => setExpanded((e) => !e)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide the slices' : 'Show the slices'}
+            title={expanded ? 'Hide the slices and display options' : 'Show the slices and display options'}
+          >
+            {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+        )}
       </div>
       <div className={cn('flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3', wide ? 'md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-start' : 'overflow-y-auto')}>
-        <div className={cn('relative w-full shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]', wide ? 'h-[max(420px,62vh)] md:row-span-2' : 'aspect-square max-h-[240px]')}>
+        <div className={cn('relative w-full shrink-0 overflow-hidden rounded-lg border bg-[#0b0b10]', wide ? 'h-[max(420px,62vh)] md:row-span-2' : 'aspect-square', !wide && !overlay && 'max-h-[240px]')}>
           <VolumeViewer volume={shown} settings={{ ...(showImage ? imageRender : render), boxLabels: wide }} />
         </div>
+        {details && (<>
         {showImage && image ? (
           <div className="flex flex-col gap-1.5 text-[11px] text-muted-foreground">
             <div className="grid grid-cols-2 gap-2">
@@ -141,6 +160,7 @@ export function PsfInset({ result, volume, quality, render, onRender, image, lay
             )}
           </div>
         )}
+        </>)}
       </div>
     </div>
   );

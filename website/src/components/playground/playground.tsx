@@ -103,6 +103,7 @@ export function Playground() {
   const [error, setError] = useState<string | null>(null);
   const [alwaysLabels, setAlwaysLabels] = useState(false);
   const [showDetector, setShowDetector] = useState(false);
+  const [highlightParts, setHighlightParts] = useState(true);
   const [viewMenu, setViewMenu] = useState(false);
   // The settings sidebar: a sticky column on wide screens, a slide-over drawer otherwise.
   const wide = useMediaQuery('(min-width: 1024px)');
@@ -126,7 +127,7 @@ export function Playground() {
     imaging: DEFAULT_IMAGING,
     autoGridOn: true,
   }));
-  const [focusPt, setFocusPt] = useState<{ x: number; y: number } | null>(null);
+  const imageRender = useMemo<RenderSettings>(() => ({ ...render, mode: 'composite', threshold: Math.max(render.threshold, 0.05), opacity: Math.max(render.opacity, 0.9) }), [render]);
   const [imaging, setImaging] = useState<ImagingSettings>(DEFAULT_IMAGING);
   const updateImaging = useCallback((patch: Partial<ImagingSettings>) => setImaging((s) => ({ ...s, ...patch })), []);
   // ms per 1e6 work units, a running average of measured accurate runs
@@ -338,6 +339,10 @@ export function Playground() {
                     <span>Always show labels</span>
                     <input type="checkbox" className="accent-primary" checked={alwaysLabels} onChange={(e) => setAlwaysLabels(e.target.checked)} />
                   </label>
+                  <label className="flex items-center justify-between gap-2" title="Tint the hovered / selected part; outlines and labels stay">
+                    <span>Highlight selected part</span>
+                    <input type="checkbox" className="accent-primary" checked={highlightParts} onChange={(e) => setHighlightParts(e.target.checked)} />
+                  </label>
                 </div>
               )}
             </div>
@@ -468,18 +473,12 @@ export function Playground() {
               onSelect={selectPart}
               onHover={setHovered}
               slmZernike={design.enabled && hasZernike(design.zernike)}
-              onFocusScreen={setFocusPt}
               sample={sim.sample}
+              focusVolume={sim.image ? { volume: sim.image, render: imageRender } : volume ? { volume, render } : null}
               detector={sim.image ? { volume: sim.image, brightestPlane: false, render } : volume ? { volume, brightestPlane: true, render } : null}
               showDetector={showDetector}
+              highlight={highlightParts}
             />
-            {/* loupe on the focus and the leader line to the zoom-in */}
-            {focusPt && (
-              <svg className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" aria-hidden>
-                <circle cx={focusPt.x} cy={focusPt.y} r={sim.sample ? 46 : 22} fill="none" stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
-                <line x1={focusPt.x + (sim.sample ? 46 : 22)} y1={focusPt.y} x2="100%" y2={44} stroke="var(--color-fd-primary)" strokeWidth={1.5} strokeDasharray="4 3" />
-              </svg>
-            )}
             {/* progress / problems, small, bottom-right of the renderer */}
             {status.tone !== 'ok' && status.tone !== 'muted' && (
               <span
@@ -495,9 +494,6 @@ export function Playground() {
               </span>
             )}
           </div>
-          <aside className="w-full shrink-0 border-l bg-background/70 backdrop-blur sm:h-full sm:w-[clamp(210px,30%,320px)]">
-            <PsfInset result={result} volume={volume} quality={quality} render={render} onRender={updateRender} image={sim.image} />
-          </aside>
       </div>
       )}
 

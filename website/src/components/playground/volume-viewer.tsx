@@ -20,6 +20,8 @@ export interface RenderSettings {
   showBox: boolean;
   /** Axis-length labels on the box (off in compact views). */
   boxLabels?: boolean;
+  /** Draw over everything (no depth test), for a volume embedded in another scene. */
+  alwaysOnTop?: boolean;
 }
 
 export const DEFAULT_RENDER: RenderSettings = {
@@ -206,7 +208,7 @@ export function VolumeMesh({ result, settings }: { result: Volume; settings: Ren
 
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
-      <mesh ref={meshRef} scale={scale}>
+      <mesh ref={meshRef} scale={scale} renderOrder={settings.alwaysOnTop ? 10 : 0}>
         <boxGeometry args={[1, 1, 1]} />
         <shaderMaterial
           ref={materialRef}
@@ -217,13 +219,14 @@ export function VolumeMesh({ result, settings }: { result: Volume; settings: Ren
           side={THREE.BackSide}
           transparent
           depthWrite={false}
+          depthTest={!settings.alwaysOnTop}
         />
       </mesh>
       {settings.showBox && (
         <group scale={scale}>
-          <lineSegments>
+          <lineSegments renderOrder={settings.alwaysOnTop ? 11 : 0}>
             <edgesGeometry args={[new THREE.BoxGeometry(1, 1, 1)]} />
-            <lineBasicMaterial color="#8a8a96" transparent opacity={0.5} />
+            <lineBasicMaterial color="#8a8a96" transparent opacity={0.5} depthTest={!settings.alwaysOnTop} />
           </lineSegments>
           {settings.boxLabels !== false && (
             <>
