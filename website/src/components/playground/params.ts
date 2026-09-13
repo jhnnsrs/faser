@@ -358,11 +358,9 @@ export const COMPONENTS: ComponentDef[] = [
         key: 'Mode',
         label: 'Mask',
         options: [
-          { value: 'GAUSSIAN', label: 'None (flat)' },
           { value: 'DONUT', label: 'Vortex (donut)' },
           { value: 'BOTTLE', label: 'π disc (bottle)' },
           { value: 'DONUT BOTTLE', label: 'Donut + bottle (incoherent mix)' },
-          { value: 'LOADED', label: 'None, pattern on the SLM' },
         ],
       },
       { key: 'VC', label: 'Vortex charge', min: -5.9, max: 5.9, step: 0.1 },
@@ -424,14 +422,6 @@ export const COMPONENTS: ComponentDef[] = [
     title: 'Cranial window',
     summary: 'An optional skull opening on the coverslip that clips the focusing cone (in vivo imaging).',
     fields: [
-      {
-        key: 'Window',
-        label: 'Cranial window',
-        options: [
-          { value: 'NO', label: 'Not in the setup' },
-          { value: 'CUSTOM', label: 'Present' },
-        ],
-      },
       { key: 'Wind_Radius', label: 'Radius', min: 0.1, max: 5, step: 0.05, unit: 'mm' },
       { key: 'Wind_Depth', label: 'Depth', min: 0.1, max: 5, step: 0.05, unit: 'mm', hint: 'Together with the radius this sets the effective NA' },
     ],

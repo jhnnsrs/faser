@@ -215,6 +215,16 @@ export function DerivedStats({ params, derived }: { params: Params; derived: Der
   );
 }
 
+/** The "in the beam path / in the setup" row of an optional element. */
+function PresenceToggle({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (on: boolean) => void; hint?: string }) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm" title={hint}>
+      <span className="font-medium">{label}</span>
+      <input type="checkbox" className="size-4 shrink-0 accent-primary" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // SLM designer
 // ---------------------------------------------------------------------------
@@ -295,10 +305,7 @@ function SlmDesigner({ params, design, onDesign, onChange }: { params: Params; d
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm">
-        <span className="font-medium">SLM in the beam path</span>
-        <input type="checkbox" className="size-4 accent-primary" checked={design.enabled} onChange={(e) => onDesign({ enabled: e.target.checked })} />
-      </label>
+      <PresenceToggle label="SLM in the beam path" checked={design.enabled} onChange={(on) => onDesign({ enabled: on })} />
 
       <div className={cn('flex flex-col gap-4', !design.enabled && 'pointer-events-none opacity-45')}>
         <div className="flex gap-3">
@@ -414,7 +421,7 @@ function SlmDesigner({ params, design, onDesign, onChange }: { params: Params; d
         {design.enabled && plateActive && (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-700 dark:text-amber-300">
             The phase plate is also active ({params.Mode.toLowerCase()}); both multiply the pupil.{' '}
-            <button type="button" className="underline" onClick={() => onChange({ Mode: 'LOADED' })}>
+            <button type="button" className="underline" onClick={() => onChange({ Mode: 'GAUSSIAN' })}>
               Use only the SLM
             </button>
           </p>
@@ -633,12 +640,56 @@ function GridSection({
 // ---------------------------------------------------------------------------
 
 /** The parameters of one component (the content of its accordion section). */
+/** Whether an optional element is part of the setup. */
+function isPresent(id: ComponentId, p: Params): boolean {
+  switch (id) {
+    case 'phaseplate':
+      return p.Mode !== 'GAUSSIAN' && p.Mode !== 'LOADED';
+    case 'window':
+      return p.Window === 'CUSTOM';
+    case 'coverslip':
+      return p.Thickness > 0;
+    default:
+      return true;
+  }
+}
+
 function SectionBody({ def, ...props }: Props & { def: ComponentDef }) {
   const { params, derived, onChange, design, onDesign } = props;
+  // remembered when an element is switched off, so switching it on restores its setting
+  const lastMask = useRef<Params['Mode']>('DONUT');
+  const lastThickness = useRef(DEFAULTS.Thickness);
+  const optional = def.id === 'phaseplate' || def.id === 'window' || def.id === 'coverslip';
+  const present = isPresent(def.id, params);
+  const toggle =
+    def.id === 'phaseplate' ? (
+      <PresenceToggle
+        label="Phase plate in the beam path"
+        checked={present}
+        hint="An analytic phase mask; without it the beam reaches the pupil flat (the SLM can still shape it)"
+        onChange={(on) => {
+          if (!on) lastMask.current = params.Mode;
+          onChange({ Mode: on ? lastMask.current : 'GAUSSIAN' });
+        }}
+      />
+    ) : def.id === 'window' ? (
+      <PresenceToggle label="Cranial window in the setup" checked={present} onChange={(on) => onChange({ Window: on ? 'CUSTOM' : 'NO' })} />
+    ) : def.id === 'coverslip' ? (
+      <PresenceToggle
+        label="Coverslip in the setup"
+        checked={present}
+        hint="Without a coverslip the immersion medium touches the sample (thickness 0)"
+        onChange={(on) => {
+          if (!on) lastThickness.current = params.Thickness;
+          onChange({ Thickness: on ? lastThickness.current : 0 });
+        }}
+      />
+    ) : null;
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{def.summary}</p>
-      {def.id === 'slm' ? (
+      {toggle}
+      {optional && !present ? null : def.id === 'slm' ? (
         <SlmDesigner params={params} design={design} onDesign={onDesign} onChange={onChange} />
       ) : def.id === 'focus' ? (
         <>
@@ -741,6 +792,9 @@ function sectionChanges(c: ComponentDef, props: Props): string[] {
       if (z) out.push(`${z} zernike mode${z > 1 ? 's' : ''}`);
     }
     return out;
+  }
+  if ((c.id === 'phaseplate' || c.id === 'window' || c.id === 'coverslip') && !isPresent(c.id, params)) {
+    return c.id === 'coverslip' ? ['none'] : [];
   }
   for (const f of c.fields) {
     if (c.id === 'focus' && (GRID_KEYS as readonly string[]).includes(f.key)) continue;
