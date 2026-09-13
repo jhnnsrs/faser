@@ -7,7 +7,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, Line, OrbitControls, useCursor } from '@react-three/drei';
 import { cn } from '@/lib/cn';
 import type { ComponentId, Derived, Params } from './params';
-import { drawPhasePlate, drawPolarizationPlate, drawPupil, wavelengthToRgb } from './pupil';
+import { drawPhasePlate, drawPolarizationPlate, drawPupil } from './pupil';
 import { drawSlmPanel } from './slm';
 import { argmax3, type Volume } from './volume';
 import { paintSlice } from './slice-canvas';
@@ -263,10 +263,8 @@ const EMISSION = '#9dff8a';
 function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onHover, resetKey, slmZernike, onFocusScreen, sample, detector, showDetector = true }: MicroscopeProps & { resetKey: number }) {
   useCursor(hovered != null, 'pointer', 'auto');
   const show = (id: ComponentId) => labels === 'always' || hovered === id || selected === id;
-  const beamColor = useMemo(() => {
-    const [r, g, b] = wavelengthToRgb(p.Wavelength * 1000);
-    return new THREE.Color(r, g, b);
-  }, [p.Wavelength]);
+  // A fixed, soft light colour: the schematic does not tint the beam by wavelength.
+  const beamColor = useMemo(() => new THREE.Color('#f0d68a'), []);
 
   // Optional elements: drawn only when they are part of the setup. When one
   // is absent but selected / hovered (via the inspector chips), a ghost
@@ -388,9 +386,9 @@ function Scene({ params: p, derived: d, labels, selected, hovered, onSelect, onH
         <mesh position={[0, -below / 2, 0]}>
           <boxGeometry args={[width, below, width * 0.7]} />
           <meshStandardMaterial
-            color="#e08a9a"
+            color="#c7bfd6"
             transparent
-            opacity={0.16 + tone.sample.boost}
+            opacity={0.1 + tone.sample.boost}
             depthWrite={false}
             emissive={tone.sample.emissive}
             emissiveIntensity={tone.sample.emissiveIntensity}
