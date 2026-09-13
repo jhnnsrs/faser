@@ -1,0 +1,123 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* Tint Fumadocs' neutral palette with the faser brand hue (the magenta-purple
+   of the original site, #960092). The `--color-fd-*` source variables are
+   overridden so both Fumadocs UI and our own components stay in sync.
+   Re-tint the whole site by editing `--brand-hue` / `--brand-chroma`. */
+:root {
+  --brand-hue: 328;
+  --brand-chroma: 0.2;
+
+  /* Neutrals: Fumadocs lightness + faint brand tint */
+  --color-fd-background: oklch(0.97 0.004 var(--brand-hue));
+  --color-fd-foreground: oklch(0.21 0.01 var(--brand-hue));
+  --color-fd-muted: oklch(0.97 0.004 var(--brand-hue));
+  --color-fd-muted-foreground: oklch(0.55 0.02 var(--brand-hue));
+  --color-fd-popover: oklch(0.985 0.004 var(--brand-hue));
+  --color-fd-popover-foreground: oklch(0.28 0.01 var(--brand-hue));
+  --color-fd-card: oklch(0.96 0.005 var(--brand-hue));
+  --color-fd-card-foreground: oklch(0.21 0.01 var(--brand-hue));
+  --color-fd-border: oklch(0.87 0.008 var(--brand-hue) / 0.5);
+  --color-fd-secondary: oklch(0.95 0.006 var(--brand-hue));
+  --color-fd-secondary-foreground: oklch(0.25 0.01 var(--brand-hue));
+  --color-fd-accent: oklch(0.87 0.01 var(--brand-hue) / 0.5);
+  --color-fd-accent-foreground: oklch(0.25 0.01 var(--brand-hue));
+
+  /* Brand accents */
+  --color-fd-primary: oklch(0.48 var(--brand-chroma) var(--brand-hue));
+  --color-fd-primary-foreground: oklch(0.98 0.01 var(--brand-hue));
+  --color-fd-ring: oklch(0.55 calc(var(--brand-chroma) * 0.6) var(--brand-hue));
+
+  /* Logo faces */
+  --brand-logo-light: oklch(0.62 calc(var(--brand-chroma) * 0.9) var(--brand-hue));
+  --brand-logo-mid: oklch(0.52 var(--brand-chroma) var(--brand-hue));
+  --brand-logo-dark: oklch(0.44 var(--brand-chroma) var(--brand-hue));
+}
+
+.dark {
+  --brand-hue: 328;
+  --brand-chroma: 0.17;
+
+  --color-fd-background: oklch(0.16 0.008 var(--brand-hue));
+  --color-fd-foreground: oklch(0.94 0.005 var(--brand-hue));
+  --color-fd-muted: oklch(0.22 0.008 var(--brand-hue));
+  --color-fd-muted-foreground: oklch(0.71 0.01 var(--brand-hue) / 0.85);
+  --color-fd-popover: oklch(0.2 0.008 var(--brand-hue));
+  --color-fd-popover-foreground: oklch(0.9 0.005 var(--brand-hue));
+  --color-fd-card: oklch(0.19 0.008 var(--brand-hue));
+  --color-fd-card-foreground: oklch(0.98 0.005 var(--brand-hue));
+  --color-fd-border: oklch(0.55 0.01 var(--brand-hue) / 0.2);
+  --color-fd-secondary: oklch(0.22 0.008 var(--brand-hue));
+  --color-fd-secondary-foreground: oklch(0.94 0.005 var(--brand-hue));
+  --color-fd-accent: oklch(0.45 0.01 var(--brand-hue) / 0.3);
+  --color-fd-accent-foreground: oklch(0.92 0.005 var(--brand-hue));
+
+  --color-fd-primary: oklch(0.72 var(--brand-chroma) var(--brand-hue));
+  --color-fd-primary-foreground: oklch(0.16 0.02 var(--brand-hue));
+  --color-fd-ring: oklch(0.6 calc(var(--brand-chroma) * 0.6) var(--brand-hue));
+
+  --brand-logo-light: oklch(0.76 calc(var(--brand-chroma) * 0.9) var(--brand-hue));
+  --brand-logo-mid: oklch(0.66 var(--brand-chroma) var(--brand-hue));
+  --brand-logo-dark: oklch(0.56 var(--brand-chroma) var(--brand-hue));
+}
+
+/* Short aliases so app components can use bg-background, text-primary, ... */
+@theme inline {
+  --color-background: var(--color-fd-background);
+  --color-foreground: var(--color-fd-foreground);
+  --color-primary: var(--color-fd-primary);
+  --color-primary-foreground: var(--color-fd-primary-foreground);
+  --color-secondary: var(--color-fd-secondary);
+  --color-secondary-foreground: var(--color-fd-secondary-foreground);
+  --color-accent: var(--color-fd-accent);
+  --color-accent-foreground: var(--color-fd-accent-foreground);
+  --color-muted: var(--color-fd-muted);
+  --color-muted-foreground: var(--color-fd-muted-foreground);
+  --color-border: var(--color-fd-border);
+  --color-input: var(--color-fd-border);
+  --color-ring: var(--color-fd-ring);
+  --color-popover: var(--color-fd-popover);
+  --color-popover-foreground: var(--color-fd-popover-foreground);
+  --color-card: var(--color-fd-card);
+  --color-card-foreground: var(--color-fd-card-foreground);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* KaTeX display math should scroll rather than overflow the prose column. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+}
+
+/* Film-grain overlay used on the landing hero. */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* Playground: compact range inputs tinted with the brand colour. */
+.pg-range {
+  accent-color: var(--color-fd-primary);
+}
+
+/* Labels floated over the 3D scenes (drei <Html>). */
+.pg-label {
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-fd-border);
+  background: color-mix(in oklab, var(--color-fd-popover) 85%, transparent);
+  color: var(--color-fd-foreground);
+  backdrop-filter: blur(4px);
+}
+.pg-label-muted {
+  color: var(--color-fd-muted-foreground);
+}

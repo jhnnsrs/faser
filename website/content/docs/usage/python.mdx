@@ -1,0 +1,55 @@
+---
+title: Python API
+description: Generate PSFs from your own Python code.
+---
+
+faser is a regular Python package. The simulator takes a `PSFConfig` (a pydantic model with the same fields as the CLI flags and the GUI) and returns a numpy array of shape `(Nz, Nxy, Nxy)`.
+
+```python
+import tifffile
+from faser.generators.base import PSFConfig, mode
+from faser.generators.vectorial.stephane import generate_psf
+
+config = PSFConfig(
+    NA=1.2,
+    Wavelength=0.488,   # µm
+    n1=1.33, n2=1.52, n3=1.38,
+    Thickness=170, Collar=170,
+    Depth=20,           # µm below the coverslip
+    Mode=mode.DONUT,    # STED-style vortex phase mask
+    Nxy=64, Nz=32,
+    Normalize="YES",
+)
+
+psf = generate_psf(config)   # (Nz, Nxy, Nxy), float64
+tifffile.imwrite("psf.tif", psf.astype("float32"))
+```
+
+## Backends
+
+`generate_psf` uses the native multi-core simulator (written in Rust and shipped as a compiled extension) whenever it is available and falls back to the pure numpy reference implementation otherwise. Both give the same result:
+
+```python
+from faser.generators.vectorial import stephane
+
+stephane.BACKEND            # "rust" or "numpy"
+stephane.generate_psf_numpy # the reference implementation, always available
+```
+
+## Derived quantities
+
+The config exposes the quantities the integrator actually uses as properties, e.g. the semi-aperture angle, the pupil radius and the axial shift of the aberrated focus:
+
+```python
+config.alpha   # arcsin(NA / n1), in rad
+config.r0      # pupil radius WD * sin(alpha), in µm
+config.Dfoc    # focus shift caused by index mismatch, in µm
+```
+
+## Saving and loading configs
+
+The JSON produced by `config.model_dump_json()` is the same `psf_config.json` the GUI, the CLI and the [Playground](/playground) write, so configs can be exchanged freely between them:
+
+```python
+config = PSFConfig.model_validate_json(open("psf_config.json").read())
+```

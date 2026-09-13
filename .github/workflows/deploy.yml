@@ -1,31 +1,68 @@
-name: Deploy to GitHub Pages
+name: Deploy website to GitHub Pages
 
 on:
-  # Trigger the workflow every time you push to the `main` branch
-  # Using a different branch name? Replace `main` with your branch’s name
   push:
-    branches: [ main ]
-  # Allows you to run this workflow manually from the Actions tab on GitHub.
+    branches: [main]
   workflow_dispatch:
 
-# Allow this job to clone the repo and create a page deployment
+# Permissions required by the GitHub Pages deployment actions.
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Allow one concurrent deployment; don't cancel an in-progress production deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
     steps:
-      - name: Checkout your repository using git
-        uses: actions/checkout@v4
-      - name: Install, build, and upload your site
-        uses: withastro/action@v3
+      - uses: actions/checkout@v4
+
+      # The playground runs the simulator as WebAssembly (rust/wasm).
+      - name: Install Rust toolchain with the wasm32 target
+        uses: dtolnay/rust-toolchain@stable
         with:
-          path: website 
-          # node-version: 20 # The specific version of Node that should be used to build your site. Defaults to 20. (optional)
-          # package-manager: pnpm@latest # The Node package manager that should be used to install dependencies and build your site. Automatically detected based on your lockfile. (optional)
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install wasm-pack
+        run: curl -sSfL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: website/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the simulator to WebAssembly
+        run: pnpm build:wasm
+
+      - name: Build the static site
+        run: pnpm build
+        env:
+          # The site is served from jhnnsrs.github.io/faser
+          PAGES_BASE_PATH: /faser
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/out
 
   deploy:
     needs: build
@@ -34,6 +71,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

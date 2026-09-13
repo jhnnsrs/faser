@@ -144,8 +144,22 @@ checkout compiles the native backend, which needs a Rust toolchain (https://rust
 uv sync            # or: pip install -e .
 ```
 
-For local development after editing `rust/src/lib.rs`:
+The Rust code is a small workspace in `rust/`: `rust/core` is the simulator itself
+(pure Rust, no Python dependency), `rust/src/lib.rs` is the thin pyo3 wrapper that
+becomes `faser._core`, and `rust/wasm` compiles the same core to WebAssembly for the
+website playground. For local development after editing the Rust code:
 
 ```bash
 uvx maturin develop --release
+cargo test --manifest-path rust/Cargo.toml -p faser-core --features serde
 ```
+
+## Website and playground
+
+The documentation site at https://jhnnsrs.github.io/faser lives in `website/`
+(Next.js + Fumadocs, static export). Its playground runs the simulator in the
+browser: `rust/wasm` is built with `wasm-pack` into `website/public/wasm`, driven
+from a Web Worker, and the result is rendered with a three.js volume ray-marcher next
+to an idealized 3D microscope model that follows the parameters. See
+[`website/README.md`](website/README.md) for the local setup; the site is deployed
+by `.github/workflows/deploy.yml` on every push to `main`.

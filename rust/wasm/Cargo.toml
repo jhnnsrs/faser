@@ -1,0 +1,16 @@
+[package]
+name = "faser-wasm"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "faser vectorial PSF simulator compiled to WebAssembly for the documentation playground"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+faser-core = { path = "../core", features = ["serde"] }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ndarray = "0.15"

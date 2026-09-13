@@ -1,0 +1,90 @@
+---
+title: Command line
+description: Install faser as a command line tool for scripting and automation.
+---
+
+In this guide, we will walk you through the process of installing faser as a CLI application.
+
+<Callout type="info" title="Who is this guide for?">
+CLI usage is tailored to users that want to integrate faser into their own applications or workflows and are comfortable with the command line interface. To install the CLI version of faser, you need to have a basic understanding of Python and package management tools like pip.
+</Callout>
+
+## Pre-requisites
+
+In order to install faser as a CLI application, you will need the following:
+
+- Python 3.9 or higher
+- A package manager (pip, conda, poetry, uv)
+
+## Installation
+
+<Steps>
+<Step>
+### Create a python environment
+
+Using a tool like `conda`, `poetry` or `uv` (use uv, it's the best), create a virtual environment in the directory where you want to install faser.
+
+```bash
+python -m venv .venv
+```
+</Step>
+
+<Step>
+### Activate the environment
+
+Activate the virtual environment using the following command on linux/mac
+
+```bash
+source .venv/bin/activate
+```
+
+or on windows
+
+```bash
+.venv\Scripts\activate
+```
+</Step>
+
+<Step>
+### Install faser
+
+```bash
+pip install "faser[cli]"
+```
+
+<Callout type="info">
+The `faser[cli]` extra installs faser with the command line interface. The `napari[pyqt5]` package is not required for the CLI version of faser.
+</Callout>
+</Step>
+
+<Step>
+### Run faser
+
+Run the following command (inside your **activated** virtual environment):
+
+```bash
+faser --help
+```
+</Step>
+</Steps>
+
+## General usage
+
+Once you have installed faser, you can use the command line interface to generate PSFs for your optical system. `faser --help` displays the available options; every field of the simulation config is exposed as a flag.
+
+### Example
+
+To generate a PSF with a vertical tilt aberration of 0.1 and a numerical aperture of 1.4, you can run the following command:
+
+```bash
+faser --a1=0.1 --na=1.4
+```
+
+This command will generate a PSF with a vertical tilt aberration of 0.1 and a numerical aperture of 1.4, and will output the PSF (and all of the parameters of the optical properties) to the current working directory.
+
+<Files>
+  <Folder name="folder_where_you_ran_the_cli" defaultOpen>
+    <File name="psf_config.json" />
+    <File name="psf.tif" />
+  </Folder>
+</Files>

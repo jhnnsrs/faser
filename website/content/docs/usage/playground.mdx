@@ -1,0 +1,56 @@
+---
+title: Playground (browser)
+description: Generate, compare and image with PSFs directly on this website, no installation needed.
+---
+
+The faser simulator is compiled to WebAssembly, so the full vectorial model runs in your browser. Open the [Playground](/playground) to try it.
+
+<Callout type="info">
+Everything is computed on your machine; nothing is uploaded. Large grids and many integration steps take proportionally longer on a single core, so start small.
+</Callout>
+
+## Panes
+
+The parameter panel on the left drives all three panes.
+
+### PSF & microscope
+
+- **Microscope**: an idealized model of the optical setup that follows the parameters live: the focusing cone (semi-aperture from NA and the immersion index), the immersion medium, the coverslip (thickness, tilt and refractive index), the sample with the nominal and the actual, index-mismatch shifted focus, and the back pupil with the amplitude profile, the phase mask and the aberration phase.
+- **PSF volume**: a ray-marched rendering of the simulated intensity, either as a maximum intensity projection or with emission-absorption compositing. Drag to orbit, scroll to zoom.
+- **Slices**: the XY plane through the brightest voxel and the XZ plane through the centre, with linear or logarithmic scaling.
+
+### Vectorial vs scalar
+
+The same parameters are run through the scalar Debye integral: same pupil, phase mask, aberrations and coverslip/depth phase, but no polarization coupling and no Fresnel transmission. Both PSFs are shown side by side with a signed difference map (vectorial − scalar) on a diverging scale, and a table of lateral and axial FWHM values. At high NA the vectorial focus is wider and, for linear polarization, elongated along the polarization direction; the scalar model misses that.
+
+### Imaging simulation
+
+A synthetic ground-truth sample is generated on the PSF's voxel grid and convolved with the PSF (3-D FFT convolution in the browser). Choose between random beads, filaments, cells (membranes with a nucleus), a point lattice and a Siemens star, set the field of view, reseed, and optionally add Poisson shot noise with a chosen number of photons in the brightest voxel. Compare ground truth and image as z-slices or as 3D volumes.
+
+## Round trip with the desktop tools
+
+The **Download** buttons give you the volume as a 32-bit multi-page TIFF (opens in Fiji/ImageJ and napari with the correct pixel size) and the parameters as `psf_config.json`. That JSON is exactly what the CLI and the napari plugin read and write, so you can continue on the desktop with a bigger grid:
+
+```bash
+faser --config psf_config.json --nxy 128 --nz 64
+```
+
+The scalar model is also available from Python for the same comparison:
+
+```python
+from faser import _core
+scalar = _core.generate_psf_json(config.model_dump_json(), scalar=True)
+```
+
+## Grid sizes
+
+The PSF cost scales with `Ntheta × (Nphi + Nz) × Nxy²`. As a rule of thumb in the browser:
+
+| Nxy | Nz | Ntheta / Nphi | time (single core) |
+| --- | -- | ------------- | ------------------ |
+| 64  | 32 | 40            | ~0.1 s             |
+| 64  | 48 | 60            | ~0.2 s             |
+| 128 | 64 | 60            | ~0.5 s             |
+| 256 | 96 | 100           | several seconds    |
+
+The imaging simulation adds an FFT over the sample field plus the PSF extent; a 96 × 96 × 48 field with a 64 × 64 × 32 PSF takes well under a second.

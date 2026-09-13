@@ -1,0 +1,73 @@
+---
+title: Basics (CLI)
+description: Simulate a PSF from the command line.
+---
+
+In this example, we will demonstrate how to use faser to simulate the point spread function (PSF) of an optical microscope, using a 1.2 NA objective lens with a 488 nm excitation wavelength. This example will focus on using the faser command-line interface (CLI) to generate the PSF.
+
+<Callout type="info" title="Prerequisites">
+Before you begin, make sure you have the faser CLI installed on your system. If you haven't installed faser yet, you can follow the installation guide [here](/docs/installation/cli).
+</Callout>
+
+## Step by step guide
+
+<Steps>
+<Step>
+### Open a terminal
+
+To get started with faser, open a terminal inside a working directory where you would like to output the PSF files (and their corresponding parameter configs).
+</Step>
+
+<Step>
+### Familiarize yourself with the CLI parameters
+
+The faser CLI accepts a number of parameters that can be used to customize the PSF simulation. To see the available parameters, you can run the following command:
+
+```bash
+faser --help
+```
+
+Every field of the simulation config is available as a flag, for example:
+
+```text
+--na          FLOAT    Numerical Aperture of Objective Lens
+--wavelength  FLOAT    Wavelength of light (in µm)
+--n1          FLOAT    Refractive index of the immersion medium
+--n2          FLOAT    Refractive index of the coverslip
+--n3          FLOAT    Refractive index of the sample
+--thickness   FLOAT    Thickness of the coverslip (in µm)
+--collar      FLOAT    Correction collar setting (in µm)
+--depth       FLOAT    Imaging depth in the sample (in µm)
+--tilt        FLOAT    Tilt angle of the coverslip (in °)
+--mode        MODE     GAUSSIAN | DONUT | BOTTLE | "DONUT BOTTLE"
+--a12         FLOAT    Primary spherical aberration
+--nxy / --nz  INTEGER  Discretization of the image plane / Z axis
+--config      FILENAME Path to a JSON file with all parameters
+```
+</Step>
+
+<Step>
+### Run the PSF simulation
+
+```bash
+faser --na=1.2 --wavelength=0.488
+```
+
+You can also pass a `psf_config.json` (for example one downloaded from the [Playground](/playground)):
+
+```bash
+faser --config psf_config.json
+```
+</Step>
+
+<Step>
+### Inspect the PSF
+
+Once the simulation is complete, you can inspect the PSF by opening the generated TIFF file in an image viewer or analysis software. You can also import the PSF into napari for visualization or reopen the `psf_config.json` file to see the parameters used for the simulation.
+
+<Files>
+  <File name="psf_config.json" />
+  <File name="psf.tif" />
+</Files>
+</Step>
+</Steps>

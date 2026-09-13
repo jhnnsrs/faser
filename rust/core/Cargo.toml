@@ -1,0 +1,30 @@
+[package]
+name = "faser-core"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Vectorial PSF simulator (Richards-Wolf / Török stratified medium), backend-agnostic"
+
+[lib]
+name = "faser_core"
+
+[dependencies]
+ndarray = "0.15"
+num-complex = "0.4"
+num-traits = "0.2"
+rustfft = "6"
+rayon = { version = "1.11", optional = true }
+pyo3 = { version = "0.27", optional = true, features = ["abi3-py39"] }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+default = []
+# Multi-core execution via rayon (not available on wasm32-unknown-unknown).
+parallel = ["dep:rayon", "ndarray/rayon"]
+# Expose PsfConfig / Mode / Normalize as pyo3 classes.
+python = ["dep:pyo3"]
+# (De)serialize the user-facing Params from the psf_config.json format.
+serde = ["dep:serde"]
+
+[dev-dependencies]
+serde_json = "1"

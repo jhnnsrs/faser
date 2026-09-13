@@ -1,21 +1,25 @@
 [package]
-name = "faser-core"
+name = "faser-py"
 version = "0.0.0"  # version is taken from pyproject.toml by maturin
 edition = "2024"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# The Python extension module `faser._core`. The simulator itself lives in
+# ./core (pure Rust, also compiled to WebAssembly by ./wasm for the docs site).
 [lib]
 name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
+faser-core = { path = "core", features = ["python", "parallel", "serde"] }
 pyo3 = { version = "0.27", features = ["abi3-py39"] }
 numpy = "0.27"
-ndarray = { version = "0.15", features = ["rayon"] } # Enable rayon for ndarray
-rayon = "1.11"
-num-complex = "0.4"
-num-traits = "0.2"
+ndarray = { version = "0.15", features = ["rayon"] }
+serde_json = "1"
+
+[workspace]
+members = ["core", "wasm"]
+
 [profile.release]
 opt-level = 3
 lto = "fat"
