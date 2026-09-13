@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Bookmark, ChevronDown, Loader2, Save, Trash2 } from 'lucide-react';
+import { Bookmark, ChevronDown, FolderOpen, Loader2, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { PRESETS } from './params';
 import { deleteScene, listScenes, saveScene, type SavedScene, type SceneState } from './scenes';
@@ -15,6 +15,8 @@ interface Props {
   busy?: boolean;
   onPreset: (index: number) => void;
   onSaved: (scene: SavedScene) => void;
+  /** Open a psf_config.json from disk. */
+  onLoadFile?: () => void;
   /** The state to store when the user saves. */
   getState: () => SceneState;
   /** 'popover': a dropdown for the action bar; 'inline': unfolds in place (the settings card). */
@@ -22,7 +24,7 @@ interface Props {
 }
 
 /** A menu of scenes: the built-in presets with their descriptions, and the ones saved in this browser. */
-export function ScenePicker({ currentName, dirty, busy = false, onPreset, onSaved, getState, variant = 'popover' }: Props) {
+export function ScenePicker({ currentName, dirty, busy = false, onPreset, onSaved, onLoadFile, getState, variant = 'popover' }: Props) {
   const inline = variant === 'inline';
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -177,6 +179,22 @@ export function ScenePicker({ currentName, dirty, busy = false, onPreset, onSave
               )}
             </section>
           </div>
+          {onLoadFile && (
+            <button
+              type="button"
+              className="mt-2 flex w-full items-center gap-2 rounded-md border border-dashed px-2 py-1.5 text-left text-sm hover:bg-accent"
+              onClick={() => {
+                setOpen(false);
+                onLoadFile();
+              }}
+            >
+              <FolderOpen className="size-4 text-muted-foreground" />
+              <span>
+                Load a config file…
+                <span className="block text-xs text-muted-foreground">psf_config.json from the CLI, the napari plugin or this playground</span>
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>

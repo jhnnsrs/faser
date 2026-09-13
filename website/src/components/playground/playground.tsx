@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FolderOpen, Menu, Microscope, PanelRightClose, Play, RotateCcw, Settings2, SlidersHorizontal, Target, X, Zap } from 'lucide-react';
+import { Microscope, Play, RotateCcw, Settings2, SlidersHorizontal, Target, Zap } from 'lucide-react';
 import { ScenePicker } from './scene-picker';
 import { ExportMenu } from './export-menu';
 import { sceneState, type SavedScene } from './scenes';
@@ -104,8 +104,6 @@ export function Playground() {
   const [alwaysLabels, setAlwaysLabels] = useState(false);
   const [showDetector, setShowDetector] = useState(false);
   const [viewMenu, setViewMenu] = useState(false);
-  // On small screens the floating controls sit behind one menu button.
-  const [controlsOpen, setControlsOpen] = useState(false);
   // The settings sidebar: a sticky column on wide screens, a slide-over drawer otherwise.
   const wide = useMediaQuery('(min-width: 1024px)');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -314,21 +312,8 @@ export function Playground() {
         className={cn(
           'flex flex-wrap items-center gap-2 text-sm',
           floating && 'pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)] [&>*]:pointer-events-auto',
-          floating && !controlsOpen && 'max-sm:[&>*:not(:first-child)]:hidden',
         )}
       >
-        {floating && (
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-md border bg-background/90 px-2 py-1 text-xs backdrop-blur sm:hidden"
-            onClick={() => setControlsOpen((o) => !o)}
-            aria-expanded={controlsOpen}
-            aria-label={controlsOpen ? 'Hide controls' : 'Show controls'}
-          >
-            {controlsOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-            {controlsOpen ? '' : 'Controls'}
-          </button>
-        )}
         <div className="inline-flex items-center rounded-full border p-0.5" role="tablist" aria-label="View">
           {(['scene', 'psf'] as const).map((v) => {
             const Icon = v === 'scene' ? Microscope : Target;
@@ -379,12 +364,19 @@ export function Playground() {
             </div>
           </>
         )}
-        <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+      </div>
+  );
+
+  /** Compute, export and reset on one line: the footer of the settings card. */
+  const actions = (
+    <div className="flex items-center justify-between gap-2 text-sm">
+      <div className="inline-flex overflow-hidden rounded-md border">
         <button
           type="button"
           onClick={() => setLive((a) => !a)}
-          className={cn('inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1', live ? 'border-primary/40 bg-primary/10 text-primary' : 'text-muted-foreground')}
+          className={cn('inline-flex items-center gap-1.5 px-2.5 py-1.5', live ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}
           title="Compute the accurate volume automatically whenever a parameter settles"
+          aria-pressed={live}
         >
           <Zap className="size-4" />
           Live
@@ -393,13 +385,14 @@ export function Playground() {
           type="button"
           onClick={() => requestFinal(effective)}
           disabled={!ready}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 border-l bg-primary px-3 py-1.5 font-medium text-primary-foreground disabled:opacity-50"
           title="Compute the accurate volume now"
         >
           <Play className="size-4" />
           Generate
         </button>
-        <span className="mx-1 h-5 w-px bg-border" />
+      </div>
+      <div className="inline-flex items-center gap-1.5">
         <ExportMenu
           image={
             sim.image
@@ -412,27 +405,30 @@ export function Playground() {
           onConfig={downloadJson}
           download={download}
           disabledVolume={!result}
+          openUpward
         />
-        <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1" title="Load a psf_config.json">
-          <FolderOpen className="size-4" />
-          Load
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void loadJson(f);
-            e.target.value = '';
-          }}
-        />
-        <button type="button" onClick={() => applyPreset(0)} className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => applyPreset(0)}
+          className="inline-flex items-center rounded-md border p-1.5 text-muted-foreground hover:text-foreground"
+          title="Reset to the default scene"
+          aria-label="Reset to the default scene"
+        >
           <RotateCcw className="size-4" />
-          Reset
         </button>
       </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void loadJson(f);
+          e.target.value = '';
+        }}
+      />
+    </div>
   );
 
   const scenePicker = (
@@ -443,6 +439,7 @@ export function Playground() {
       busy={finalBusy || previewBusy || !ready}
       onPreset={applyPreset}
       onSaved={(scene) => applySaved(scene)}
+      onLoadFile={() => fileRef.current?.click()}
       getState={() => ({ params, design, imaging, autoGridOn })}
     />
   );
@@ -464,8 +461,9 @@ export function Playground() {
             imaging={imaging}
             onImaging={updateImaging}
             imagingStatus={{ voxel: sim.voxel, tooLarge: sim.tooLarge, error: sim.error, busy: sim.busy }}
-            onClose={wide ? undefined : () => setDrawerOpen(false)}
+            onClose={wide ? () => setSidebarVisible(false) : () => setDrawerOpen(false)}
             scenePicker={scenePicker}
+            footer={actions}
           />
   );
 
@@ -546,16 +544,18 @@ export function Playground() {
               {inspector}
             </aside>
           </div>
-          <button
-            type="button"
-            className="fixed bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2.5 text-sm font-medium shadow-lg backdrop-blur hover:bg-accent"
-            onClick={() => setSidebarVisible((v) => !v)}
-            aria-label={sidebarVisible ? 'Hide settings' : 'Show settings'}
-            title={sidebarVisible ? 'Hide the settings panel' : 'Show the settings panel'}
-          >
-            {sidebarVisible ? <PanelRightClose className="size-4" /> : <SlidersHorizontal className="size-4" />}
-            {sidebarVisible ? 'Hide' : 'Settings'}
-          </button>
+          {!sidebarVisible && (
+            <button
+              type="button"
+              className="fixed bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2.5 text-sm font-medium shadow-lg backdrop-blur hover:bg-accent"
+              onClick={() => setSidebarVisible(true)}
+              aria-label="Show settings"
+              title="Show the settings panel"
+            >
+              <SlidersHorizontal className="size-4" />
+              Settings
+            </button>
+          )}
         </>
       ) : (
         <>

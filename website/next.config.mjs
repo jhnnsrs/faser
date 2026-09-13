@@ -9,6 +9,8 @@ const basePath = process.env.PAGES_BASE_PATH || '';
 /** @type {import('next').NextConfig} */
 const config = {
   output: 'export',
+  // Folders with index.html so both /playground and /playground/ resolve on GitHub Pages.
+  trailingSlash: true,
   basePath,
   // Expose the base path to client components so they can prefix raw asset
   // references (the wasm worker, images in raw HTML; see src/lib/base-path.ts).

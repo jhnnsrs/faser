@@ -22,6 +22,8 @@ interface Props {
   onConfig: () => void;
   download: (blob: Blob, name: string) => void;
   disabledVolume: boolean;
+  /** Open the list above the button (for a footer). */
+  openUpward?: boolean;
 }
 
 /** The XY and XZ slices side by side, upscaled, as a PNG or JPEG blob. */
@@ -58,7 +60,7 @@ async function sliceImage(img: ExportImage, type: 'image/png' | 'image/jpeg'): P
 }
 
 /** "Export" dropdown: the volume as TIFF, the slices as PNG / JPEG, the parameters as JSON. */
-export function ExportMenu({ image, onTiff, onConfig, download, disabledVolume }: Props) {
+export function ExportMenu({ image, onTiff, onConfig, download, disabledVolume, openUpward = false }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -87,13 +89,13 @@ export function ExportMenu({ image, onTiff, onConfig, download, disabledVolume }
 
   return (
     <div ref={root} className="relative">
-      <button type="button" className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <button type="button" className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <Download className="size-4" />
         Export
         <ChevronDown className={cn('size-3.5 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border bg-popover p-1.5 shadow-lg">
+        <div className={cn('absolute z-20 w-64 rounded-lg border bg-popover p-1.5 shadow-lg', openUpward ? 'bottom-full right-0 mb-1' : 'left-0 top-full mt-1')}>
           {item('Volume as TIFF', '32-bit multi-page, with voxel size; opens in Fiji and napari', onTiff, disabledVolume)}
           {item('Slices as PNG', 'XY and XZ through the focus, lossless', () => image && sliceImage(image, 'image/png').then((b) => download(b, 'psf_slices.png')), !image)}
           {item('Slices as JPEG', 'The same picture, smaller file', () => image && sliceImage(image, 'image/jpeg').then((b) => download(b, 'psf_slices.jpg')), !image)}

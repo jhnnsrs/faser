@@ -61,6 +61,8 @@ interface Props {
   onClose?: () => void;
   /** The scene picker (presets, saved scenes, save), rendered under the title. */
   scenePicker?: React.ReactNode;
+  /** Actions (compute, export, load, reset), rendered as the card's footer. */
+  footer?: React.ReactNode;
 }
 
 /** Fields that only matter for some settings are dimmed otherwise. */
@@ -704,7 +706,7 @@ function SectionBody({ def, ...props }: Props & { def: ComponentDef }) {
 }
 
 export function Inspector(props: Props) {
-  const { effective, derived, selected, onSelect, onClose, scenePicker } = props;
+  const { effective, derived, selected, onSelect, onClose, scenePicker, footer } = props;
   const [derivedOpen, setDerivedOpen] = useState(false);
 
   return (
@@ -719,7 +721,7 @@ export function Inspector(props: Props) {
           </p>
         </div>
         {onClose && (
-          <button type="button" className="rounded-md p-1 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close settings">
+          <button type="button" className="rounded-md p-1 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Hide settings" title="Hide the settings panel">
             <X className="size-4" />
           </button>
         )}
@@ -769,6 +771,7 @@ export function Inspector(props: Props) {
           )}
         </section>
       </div>
+      {footer && <div className="border-t bg-card px-3 py-2.5">{footer}</div>}
     </div>
   );
 }
