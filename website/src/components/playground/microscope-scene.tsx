@@ -912,7 +912,7 @@ export function MicroscopeScene(props: MicroscopeProps) {
       >
         <Scene {...props} resetKey={resetKey} />
       </Canvas>
-      <div className="pointer-events-none absolute bottom-2 left-2 hidden flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:flex">
+      <div className="pointer-events-none absolute bottom-3 left-[13rem] hidden flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:flex">
         <span>
           <kbd className="pg-kbd">drag</kbd> move
         </span>

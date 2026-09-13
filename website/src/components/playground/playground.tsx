@@ -314,27 +314,6 @@ export function Playground() {
           floating && 'pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)] [&>*]:pointer-events-auto',
         )}
       >
-        <div className="inline-flex items-center rounded-full border p-0.5" role="tablist" aria-label="View">
-          {(['scene', 'psf'] as const).map((v) => {
-            const Icon = v === 'scene' ? Microscope : Target;
-            return (
-              <button
-                key={v}
-                type="button"
-                role="tab"
-                aria-selected={view === v}
-                onClick={() => setView(v)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors',
-                  view === v ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Icon className="size-3.5" />
-                {v === 'scene' ? 'Microscope' : 'PSF'}
-              </button>
-            );
-          })}
-        </div>
         {view === 'scene' && (
           <>
             <div className="relative text-xs">
@@ -522,6 +501,36 @@ export function Playground() {
       </div>
       )}
 
+      </div>
+
+      {/* View toggle: a floating pill at the bottom, like the settings button */}
+      <div
+        className="fixed bottom-4 left-4 z-30 inline-flex items-center rounded-full border bg-background/90 p-1 shadow-lg backdrop-blur"
+        role="tablist"
+        aria-label="View"
+      >
+        {(['scene', 'psf'] as const).map((v) => {
+          const Icon = v === 'scene' ? Microscope : Target;
+          const label = v === 'scene' ? 'Microscope' : 'PSF';
+          return (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              aria-label={label}
+              title={label}
+              onClick={() => setView(v)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors',
+                view === v ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Icon className="size-4" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Settings: sidebar on wide screens, drawer otherwise (rendered once) */}
